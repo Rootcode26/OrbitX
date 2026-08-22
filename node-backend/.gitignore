@@ -1,0 +1,58 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+out/
+*.tsbuildinfo
+
+# Test and coverage output
+coverage/
+.nyc_output/
+
+# Runtime data and logs
+logs/
+*.log
+*.pid
+*.pid.lock
+pids/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment files and local secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Package-manager and tool caches
+.npm/
+.pnpm-store/
+.yarn/cache/
+.yarn/install-state.gz
+.cache/
+.eslintcache
+.stylelintcache
+.parcel-cache/
+.turbo/
+
+# Editor and IDE settings
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+*.swp
+*.swo
+*~
+
+# Operating-system files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+*.tmp
