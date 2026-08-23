@@ -1,15 +1,22 @@
 # Dependencies
 node_modules/
+.pnp
+.pnp.js
+.pnp.cjs
 
 # Build output
 dist/
 build/
 out/
+.output/
 *.tsbuildinfo
 
 # Test and coverage output
 coverage/
 .nyc_output/
+.vitest/
+playwright-report/
+test-results/
 
 # Runtime data and logs
 logs/
@@ -21,6 +28,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+.node_repl_history
 
 # Environment files and local secrets
 .env
@@ -38,6 +46,7 @@ pnpm-debug.log*
 .stylelintcache
 .parcel-cache/
 .turbo/
+.swc/
 
 # Editor and IDE settings
 .idea/
@@ -51,6 +60,11 @@ pnpm-debug.log*
 # Operating-system files
 .DS_Store
 Thumbs.db
+
+# Package and deployment artifacts
+*.tgz
+.serverless/
+.vercel/
 
 # Temporary files
 tmp/
