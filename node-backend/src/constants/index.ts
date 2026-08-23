@@ -1,0 +1,3 @@
+export const MAX_POOL_SIZE = 20;
+export const IDLE_TIMEOUT_MILLIS = 30000;
+export const CONNECTION_TMEOUT_MILLIS = 2000;
