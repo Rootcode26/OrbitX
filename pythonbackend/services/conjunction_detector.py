@@ -1,13 +1,12 @@
 from datetime import datetime, timedelta
 
-from pythonbackend.services.propagator import Propagator
+from pythonbackend.services.propagator import (
+    propagate_tle,
+)
 
 
 class ConjunctionDetector:
     """Detect the closest approach between two satellites."""
-
-    def __init__(self, propagator: Propagator | None = None):
-        self.propagator = propagator or Propagator()
 
     @staticmethod
     def calculate_distance(
@@ -22,53 +21,64 @@ class ConjunctionDetector:
 
         return (dx * dx + dy * dy + dz * dz) ** 0.5
 
+    @staticmethod
     def _distance_at_time(
-        self,
-        satellite_a,
-        satellite_b,
+        tle_a: tuple[str, str],
+        tle_b: tuple[str, str],
         current_time: datetime,
     ) -> float:
         """Calculate satellite separation at a specific time."""
 
-        position_a = self.propagator.propagate(
-            satellite_a,
+        line1_a, line2_a = tle_a
+        line1_b, line2_b = tle_b
+
+        result_a = propagate_tle(
+            line1_a,
+            line2_a,
             current_time,
         )
 
-        position_b = self.propagator.propagate(
-            satellite_b,
+        result_b = propagate_tle(
+            line1_b,
+            line2_b,
             current_time,
         )
 
-        return self.calculate_distance(
-            position_a,
-            position_b,
+        return ConjunctionDetector.calculate_distance(
+            result_a.position_km,
+            result_b.position_km,
         )
 
     def find_closest_approach(
         self,
-        satellite_a,
-        satellite_b,
+        tle_a: tuple[str, str],
+        tle_b: tuple[str, str],
         start_time: datetime,
         duration_minutes: int = 120,
         step_seconds: int = 60,
     ) -> tuple[float, datetime]:
         """
-        Find the closest approach using a coarse-to-fine search.
+        Find closest approach using a coarse-to-fine search.
 
-        First, the prediction window is scanned using step_seconds.
-        Then, a finer search is performed around the best coarse
-        result.
+        tle_a:
+            (TLE line 1, TLE line 2) for satellite A.
+
+        tle_b:
+            (TLE line 1, TLE line 2) for satellite B.
 
         Returns:
             (minimum_distance_km, time_of_closest_approach)
         """
 
         if duration_minutes <= 0:
-            raise ValueError("duration_minutes must be greater than 0")
+            raise ValueError(
+                "duration_minutes must be greater than 0"
+            )
 
         if step_seconds <= 0:
-            raise ValueError("step_seconds must be greater than 0")
+            raise ValueError(
+                "step_seconds must be greater than 0"
+            )
 
         end_time = start_time + timedelta(
             minutes=duration_minutes
@@ -86,8 +96,8 @@ class ConjunctionDetector:
         while current_time <= end_time:
 
             distance = self._distance_at_time(
-                satellite_a,
-                satellite_b,
+                tle_a,
+                tle_b,
                 current_time,
             )
 
@@ -103,7 +113,9 @@ class ConjunctionDetector:
         # Stage 2: Fine search
         # ---------------------------------------------------------
 
-        coarse_step = timedelta(seconds=step_seconds)
+        coarse_step = timedelta(
+            seconds=step_seconds
+        )
 
         fine_start = max(
             start_time,
@@ -125,8 +137,8 @@ class ConjunctionDetector:
         while current_time <= fine_end:
 
             distance = self._distance_at_time(
-                satellite_a,
-                satellite_b,
+                tle_a,
+                tle_b,
                 current_time,
             )
 

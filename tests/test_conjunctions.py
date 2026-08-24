@@ -1,8 +1,5 @@
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
-
-from pythonbackend.services.tle_service import TLEService
-
-from datetime import datetime, timezone
 
 from fastapi.testclient import TestClient
 
@@ -10,12 +7,15 @@ from pythonbackend.main import app
 from pythonbackend.services.conjunction_detector import (
     ConjunctionDetector,
 )
-from pythonbackend.services.propagator import Propagator
+from pythonbackend.services.propagator import (
+    SGP4Result,
+    SGP4PropagationError,
+    propagate_tle,
+)
 from pythonbackend.services.risk_calculator import RiskCalculator
+from pythonbackend.services.tle_service import TLEService
 
 
-# Fixed TLE fixtures for deterministic tests.
-# These should not be fetched from the internet during tests.
 ISS_TLE = (
     "1 25544U 98067A   26235.72586232  .00009235  00000+0  17193-3 0  9995",
     "2 25544  51.6333 325.8142 0007700  76.3746 283.8100 15.49592931582224",
@@ -27,25 +27,7 @@ NOAA15_TLE = (
 )
 
 
-def test_create_satellite_from_tle():
-    propagator = Propagator()
-
-    satellite = propagator.create_satellite(
-        ISS_TLE[0],
-        ISS_TLE[1],
-    )
-
-    assert satellite is not None
-
-
-def test_propagate_returns_position():
-    propagator = Propagator()
-
-    satellite = propagator.create_satellite(
-        ISS_TLE[0],
-        ISS_TLE[1],
-    )
-
+def test_propagate_tle_returns_sgp4_result():
     timestamp = datetime(
         2026,
         8,
@@ -56,16 +38,66 @@ def test_propagate_returns_position():
         tzinfo=timezone.utc,
     )
 
-    position = propagator.propagate(
-        satellite,
+    result = propagate_tle(
+        ISS_TLE[0],
+        ISS_TLE[1],
         timestamp,
     )
 
-    assert len(position) == 3
+    assert isinstance(result, SGP4Result)
+    assert result.prediction_time_utc == timestamp
 
-    for coordinate in position:
+    assert len(result.position_km) == 3
+    assert len(result.velocity_km_s) == 3
+
+    for coordinate in result.position_km:
         assert isinstance(coordinate, float)
 
+    for velocity in result.velocity_km_s:
+        assert isinstance(velocity, float)
+
+
+def test_propagate_tle_requires_timezone():
+    timestamp = datetime(
+        2026,
+        8,
+        24,
+        14,
+        0,
+        0,
+    )
+
+    try:
+        propagate_tle(
+            ISS_TLE[0],
+            ISS_TLE[1],
+            timestamp,
+        )
+        assert False, "Expected ValueError"
+    except ValueError as exc:
+        assert "timezone" in str(exc)
+
+
+def test_propagate_tle_invalid_tle():
+    timestamp = datetime(
+        2026,
+        8,
+        24,
+        14,
+        0,
+        0,
+        tzinfo=timezone.utc,
+    )
+
+    try:
+        propagate_tle(
+            "invalid line 1",
+            "invalid line 2",
+            timestamp,
+        )
+        assert False, "Expected SGP4PropagationError"
+    except SGP4PropagationError as exc:
+        assert str(exc) == "nm is less than zero"
 
 def test_distance_calculation():
     detector = ConjunctionDetector()
@@ -82,18 +114,7 @@ def test_distance_calculation():
 
 
 def test_find_closest_approach():
-    propagator = Propagator()
-    detector = ConjunctionDetector(propagator)
-
-    satellite_a = propagator.create_satellite(
-        ISS_TLE[0],
-        ISS_TLE[1],
-    )
-
-    satellite_b = propagator.create_satellite(
-        NOAA15_TLE[0],
-        NOAA15_TLE[1],
-    )
+    detector = ConjunctionDetector()
 
     start_time = datetime(
         2026,
@@ -107,25 +128,20 @@ def test_find_closest_approach():
 
     minimum_distance, closest_time = (
         detector.find_closest_approach(
-            satellite_a=satellite_a,
-            satellite_b=satellite_b,
+            tle_a=ISS_TLE,
+            tle_b=NOAA15_TLE,
             start_time=start_time,
             duration_minutes=120,
             step_seconds=60,
         )
     )
 
+    end_time = start_time + timedelta(
+        minutes=120
+    )
+
     assert minimum_distance > 0
-    assert closest_time >= start_time
-
-    end_time = start_time.replace(
-        minute=start_time.minute + 0
-    )
-
-    assert closest_time <= (
-        start_time
-        + __import__("datetime").timedelta(minutes=120)
-    )
+    assert start_time <= closest_time <= end_time
 
 
 def test_risk_calculator():
@@ -147,6 +163,7 @@ def test_conjunction_api():
         "duration_minutes": 120,
         "step_seconds": 60,
     }
+
     response = client.post(
         "/api/conjunctions/check",
         json=payload,
@@ -157,7 +174,7 @@ def test_conjunction_api():
     data = response.json()
 
     assert data["satellite_a"] == "ISS (ZARYA)"
-    assert data["satellite_b"] == "NOAA 15" 
+    assert data["satellite_b"] == "NOAA 15"
 
     assert data["minimum_distance_km"] > 0
 
@@ -169,6 +186,7 @@ def test_conjunction_api():
         "HIGH",
         "CRITICAL",
     }
+
 
 def test_load_iss_tle():
     service = TLEService()
@@ -233,21 +251,13 @@ def test_unknown_satellite_id():
         service.get_tle("99999")
         assert False, "Expected ValueError"
     except ValueError as exc:
-        assert str(exc) == "TLE not found for satellite ID: 99999"
+        assert str(exc) == (
+            "TLE not found for satellite ID: 99999"
+        )
+
 
 def test_find_closest_approach_invalid_duration():
-    propagator = Propagator()
-    detector = ConjunctionDetector(propagator)
-
-    satellite_a = propagator.create_satellite(
-        ISS_TLE[0],
-        ISS_TLE[1],
-    )
-
-    satellite_b = propagator.create_satellite(
-        NOAA15_TLE[0],
-        NOAA15_TLE[1],
-    )
+    detector = ConjunctionDetector()
 
     start_time = datetime(
         2026,
@@ -261,30 +271,21 @@ def test_find_closest_approach_invalid_duration():
 
     try:
         detector.find_closest_approach(
-            satellite_a=satellite_a,
-            satellite_b=satellite_b,
+            tle_a=ISS_TLE,
+            tle_b=NOAA15_TLE,
             start_time=start_time,
             duration_minutes=0,
             step_seconds=60,
         )
         assert False, "Expected ValueError"
     except ValueError as exc:
-        assert str(exc) == "duration_minutes must be greater than 0"
+        assert str(exc) == (
+            "duration_minutes must be greater than 0"
+        )
 
 
 def test_find_closest_approach_invalid_step():
-    propagator = Propagator()
-    detector = ConjunctionDetector(propagator)
-
-    satellite_a = propagator.create_satellite(
-        ISS_TLE[0],
-        ISS_TLE[1],
-    )
-
-    satellite_b = propagator.create_satellite(
-        NOAA15_TLE[0],
-        NOAA15_TLE[1],
-    )
+    detector = ConjunctionDetector()
 
     start_time = datetime(
         2026,
@@ -298,12 +299,14 @@ def test_find_closest_approach_invalid_step():
 
     try:
         detector.find_closest_approach(
-            satellite_a=satellite_a,
-            satellite_b=satellite_b,
+            tle_a=ISS_TLE,
+            tle_b=NOAA15_TLE,
             start_time=start_time,
             duration_minutes=120,
             step_seconds=0,
         )
         assert False, "Expected ValueError"
     except ValueError as exc:
-        assert str(exc) == "step_seconds must be greater than 0"
+        assert str(exc) == (
+            "step_seconds must be greater than 0"
+        )

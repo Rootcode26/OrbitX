@@ -30,6 +30,7 @@ def check_conjunction(
 ) -> ConjunctionResponse:
 
     try:
+        # Get TLE data using NORAD IDs.
         name_a, line1_a, line2_a = tle_service.get_tle(
             request.satellite_a
         )
@@ -38,26 +39,19 @@ def check_conjunction(
             request.satellite_b
         )
 
-        satellite_a = detector.propagator.create_satellite(
-            line1_a,
-            line2_a,
-        )
-
-        satellite_b = detector.propagator.create_satellite(
-            line1_b,
-            line2_b,
-        )
-
+        # Find closest approach using the shared SGP4
+        # propagation implementation.
         minimum_distance, closest_time = (
             detector.find_closest_approach(
-                satellite_a=satellite_a,
-                satellite_b=satellite_b,
+                tle_a=(line1_a, line2_a),
+                tle_b=(line1_b, line2_b),
                 start_time=request.start_time,
                 duration_minutes=request.duration_minutes,
                 step_seconds=request.step_seconds,
             )
         )
 
+        # Calculate preliminary risk level.
         risk_level = risk_calculator.calculate_risk(
             minimum_distance
         )
