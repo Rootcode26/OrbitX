@@ -4,14 +4,11 @@ from pythonbackend.schemas.conjunctions import (
     ConjunctionRequest,
     ConjunctionResponse,
 )
-
 from pythonbackend.services.conjunction_detector import (
     ConjunctionDetector,
 )
-
-from pythonbackend.services.risk_calculator import (
-    RiskCalculator,
-)
+from pythonbackend.services.risk_calculator import RiskCalculator
+from pythonbackend.services.tle_service import TLEService
 
 
 router = APIRouter(
@@ -21,6 +18,7 @@ router = APIRouter(
 
 detector = ConjunctionDetector()
 risk_calculator = RiskCalculator()
+tle_service = TLEService()
 
 
 @router.post(
@@ -32,14 +30,22 @@ def check_conjunction(
 ) -> ConjunctionResponse:
 
     try:
+        name_a, line1_a, line2_a = tle_service.get_tle(
+            request.satellite_a
+        )
+
+        name_b, line1_b, line2_b = tle_service.get_tle(
+            request.satellite_b
+        )
+
         satellite_a = detector.propagator.create_satellite(
-            request.satellite_a.line1,
-            request.satellite_a.line2,
+            line1_a,
+            line2_a,
         )
 
         satellite_b = detector.propagator.create_satellite(
-            request.satellite_b.line1,
-            request.satellite_b.line2,
+            line1_b,
+            line2_b,
         )
 
         minimum_distance, closest_time = (
@@ -57,8 +63,8 @@ def check_conjunction(
         )
 
         return ConjunctionResponse(
-            satellite_a=request.satellite_a.name,
-            satellite_b=request.satellite_b.name,
+            satellite_a=name_a,
+            satellite_b=name_b,
             minimum_distance_km=round(
                 minimum_distance,
                 3,
@@ -70,6 +76,12 @@ def check_conjunction(
     except ValueError as exc:
         raise HTTPException(
             status_code=400,
+            detail=str(exc),
+        ) from exc
+
+    except FileNotFoundError as exc:
+        raise HTTPException(
+            status_code=404,
             detail=str(exc),
         ) from exc
 

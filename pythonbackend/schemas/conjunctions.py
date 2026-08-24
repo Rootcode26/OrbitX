@@ -4,15 +4,18 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 
-class TLEData(BaseModel):
-    name: str
-    line1: str
-    line2: str
-
-
 class ConjunctionRequest(BaseModel):
-    satellite_a: TLEData
-    satellite_b: TLEData
+    satellite_a: str = Field(
+        ...,
+        min_length=1,
+        description="NORAD catalog ID of satellite A",
+    )
+
+    satellite_b: str = Field(
+        ...,
+        min_length=1,
+        description="NORAD catalog ID of satellite B",
+    )
 
     start_time: datetime
 

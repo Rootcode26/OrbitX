@@ -1,3 +1,7 @@
+from pathlib import Path
+
+from pythonbackend.services.tle_service import TLEService
+
 from datetime import datetime, timezone
 
 from fastapi.testclient import TestClient
@@ -137,21 +141,12 @@ def test_conjunction_api():
     client = TestClient(app)
 
     payload = {
-        "satellite_a": {
-            "name": "ISS",
-            "line1": ISS_TLE[0],
-            "line2": ISS_TLE[1],
-        },
-        "satellite_b": {
-            "name": "NOAA-15",
-            "line1": NOAA15_TLE[0],
-            "line2": NOAA15_TLE[1],
-        },
+        "satellite_a": "25544",
+        "satellite_b": "25338",
         "start_time": "2026-08-24T14:00:00Z",
         "duration_minutes": 120,
         "step_seconds": 60,
     }
-
     response = client.post(
         "/api/conjunctions/check",
         json=payload,
@@ -161,8 +156,8 @@ def test_conjunction_api():
 
     data = response.json()
 
-    assert data["satellite_a"] == "ISS"
-    assert data["satellite_b"] == "NOAA-15"
+    assert data["satellite_a"] == "ISS (ZARYA)"
+    assert data["satellite_b"] == "NOAA 15" 
 
     assert data["minimum_distance_km"] > 0
 
@@ -174,3 +169,68 @@ def test_conjunction_api():
         "HIGH",
         "CRITICAL",
     }
+
+def test_load_iss_tle():
+    service = TLEService()
+
+    fixture_path = (
+        Path(__file__).parent
+        / "fixtures"
+        / "iss.tle"
+    )
+
+    name, line1, line2 = service.load_from_file(
+        str(fixture_path)
+    )
+
+    assert name == "ISS (ZARYA)"
+    assert line1.startswith("1 ")
+    assert line2.startswith("2 ")
+
+
+def test_load_noaa15_tle():
+    service = TLEService()
+
+    fixture_path = (
+        Path(__file__).parent
+        / "fixtures"
+        / "noaa15.tle"
+    )
+
+    name, line1, line2 = service.load_from_file(
+        str(fixture_path)
+    )
+
+    assert name == "NOAA 15"
+    assert line1.startswith("1 ")
+    assert line2.startswith("2 ")
+
+
+def test_get_tle_by_satellite_id():
+    service = TLEService()
+
+    name, line1, line2 = service.get_tle("25544")
+
+    assert name == "ISS (ZARYA)"
+    assert line1.startswith("1 25544")
+    assert line2.startswith("2 25544")
+
+
+def test_get_noaa15_tle_by_satellite_id():
+    service = TLEService()
+
+    name, line1, line2 = service.get_tle("25338")
+
+    assert name == "NOAA 15"
+    assert line1.startswith("1 25338")
+    assert line2.startswith("2 25338")
+
+
+def test_unknown_satellite_id():
+    service = TLEService()
+
+    try:
+        service.get_tle("99999")
+        assert False, "Expected ValueError"
+    except ValueError as exc:
+        assert str(exc) == "TLE not found for satellite ID: 99999"
