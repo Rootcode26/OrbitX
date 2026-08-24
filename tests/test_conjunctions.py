@@ -1,11 +1,13 @@
 from datetime import datetime, timedelta, timezone
-from pathlib import Path
 
 from fastapi.testclient import TestClient
 
 from pythonbackend.main import app
 from pythonbackend.services.conjunction_detector import (
     ConjunctionDetector,
+)
+from pythonbackend.services.local_tle_provider import (
+    LocalTLEProvider,
 )
 from pythonbackend.services.propagator import (
     SGP4Result,
@@ -14,7 +16,6 @@ from pythonbackend.services.propagator import (
 )
 from pythonbackend.services.risk_calculator import RiskCalculator
 from pythonbackend.services.tle_service import TLEService
-
 
 ISS_TLE = (
     "1 25544U 98067A   26235.72586232  .00009235  00000+0  17193-3 0  9995",
@@ -188,41 +189,32 @@ def test_conjunction_api():
     }
 
 
-def test_load_iss_tle():
-    service = TLEService()
-
-    fixture_path = (
-        Path(__file__).parent
-        / "fixtures"
-        / "iss.tle"
+def test_local_provider_loads_iss_tle():
+    provider = LocalTLEProvider(
+        tle_directory="tests/fixtures"
     )
 
-    name, line1, line2 = service.load_from_file(
-        str(fixture_path)
+    name, line1, line2 = provider.load_from_file(
+        "tests/fixtures/iss.tle"
     )
 
     assert name == "ISS (ZARYA)"
-    assert line1.startswith("1 ")
-    assert line2.startswith("2 ")
+    assert line1.startswith("1 25544")
+    assert line2.startswith("2 25544")
 
 
-def test_load_noaa15_tle():
-    service = TLEService()
-
-    fixture_path = (
-        Path(__file__).parent
-        / "fixtures"
-        / "noaa15.tle"
+def test_local_provider_loads_noaa15_tle():
+    provider = LocalTLEProvider(
+        tle_directory="tests/fixtures"
     )
 
-    name, line1, line2 = service.load_from_file(
-        str(fixture_path)
+    name, line1, line2 = provider.load_from_file(
+        "tests/fixtures/noaa15.tle"
     )
 
     assert name == "NOAA 15"
-    assert line1.startswith("1 ")
-    assert line2.startswith("2 ")
-
+    assert line1.startswith("1 25338")
+    assert line2.startswith("2 25338")
 
 def test_get_tle_by_satellite_id():
     service = TLEService()
