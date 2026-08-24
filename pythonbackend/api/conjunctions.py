@@ -7,9 +7,12 @@ from pythonbackend.schemas.conjunctions import (
 from pythonbackend.services.conjunction_detector import (
     ConjunctionDetector,
 )
+from pythonbackend.services.propagator import (
+    InvalidTLEError,
+    SGP4PropagationError,
+)
 from pythonbackend.services.risk_calculator import RiskCalculator
 from pythonbackend.services.tle_service import TLEService
-
 
 router = APIRouter(
     prefix="/api/conjunctions",
@@ -76,6 +79,18 @@ def check_conjunction(
     except FileNotFoundError as exc:
         raise HTTPException(
             status_code=404,
+            detail=str(exc),
+        ) from exc
+
+    except InvalidTLEError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail=str(exc),
+        ) from exc
+
+    except SGP4PropagationError as exc:
+        raise HTTPException(
+            status_code=422,
             detail=str(exc),
         ) from exc
 

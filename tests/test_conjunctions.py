@@ -310,3 +310,23 @@ def test_find_closest_approach_invalid_step():
         assert str(exc) == (
             "step_seconds must be greater than 0"
         )
+
+
+def test_conjunction_api_unknown_satellite():
+    client = TestClient(app)
+
+    payload = {
+        "satellite_a": "99999",
+        "satellite_b": "25338",
+        "start_time": "2026-08-24T14:00:00Z",
+        "duration_minutes": 120,
+        "step_seconds": 60,
+    }
+
+    response = client.post(
+        "/api/conjunctions/check",
+        json=payload,
+    )
+
+    assert response.status_code == 400
+    assert "TLE not found" in response.json()["detail"]
