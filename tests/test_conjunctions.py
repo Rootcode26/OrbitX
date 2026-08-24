@@ -10,12 +10,13 @@ from pythonbackend.services.local_tle_provider import (
     LocalTLEProvider,
 )
 from pythonbackend.services.propagator import (
-    SGP4Result,
     SGP4PropagationError,
+    SGP4Result,
     propagate_tle,
 )
 from pythonbackend.services.risk_calculator import RiskCalculator
 from pythonbackend.services.tle_service import TLEService
+
 
 ISS_TLE = (
     "1 25544U 98067A   26235.72586232  .00009235  00000+0  17193-3 0  9995",
@@ -99,6 +100,7 @@ def test_propagate_tle_invalid_tle():
         assert False, "Expected SGP4PropagationError"
     except SGP4PropagationError as exc:
         assert str(exc) == "nm is less than zero"
+
 
 def test_distance_calculation():
     detector = ConjunctionDetector()
@@ -191,7 +193,8 @@ def test_conjunction_api():
 
 def test_local_provider_loads_iss_tle():
     provider = LocalTLEProvider(
-        tle_directory="tests/fixtures"
+        tle_directory="tests/fixtures",
+        catalog_path="data/satellites.json",
     )
 
     name, line1, line2 = provider.load_from_file(
@@ -205,7 +208,8 @@ def test_local_provider_loads_iss_tle():
 
 def test_local_provider_loads_noaa15_tle():
     provider = LocalTLEProvider(
-        tle_directory="tests/fixtures"
+        tle_directory="tests/fixtures",
+        catalog_path="data/satellites.json",
     )
 
     name, line1, line2 = provider.load_from_file(
@@ -215,6 +219,7 @@ def test_local_provider_loads_noaa15_tle():
     assert name == "NOAA 15"
     assert line1.startswith("1 25338")
     assert line2.startswith("2 25338")
+
 
 def test_get_tle_by_satellite_id():
     service = TLEService()

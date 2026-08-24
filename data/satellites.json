@@ -1,0 +1,10 @@
+{
+    "25544": {
+        "name": "ISS (ZARYA)",
+        "file": "iss.tle"
+    },
+    "25338": {
+        "name": "NOAA 15",
+        "file": "noaa15.tle"
+    }
+}
