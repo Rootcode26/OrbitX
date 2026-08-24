@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 
 from pythonbackend.api.conjunctions import router as conjunction_router
+from pythonbackend.api.propagation import router as propagation_router
 
 
 app = FastAPI(
@@ -9,6 +10,7 @@ app = FastAPI(
 )
 
 
+app.include_router(propagation_router)
 app.include_router(conjunction_router)
 
 
