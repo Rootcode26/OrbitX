@@ -234,3 +234,76 @@ def test_unknown_satellite_id():
         assert False, "Expected ValueError"
     except ValueError as exc:
         assert str(exc) == "TLE not found for satellite ID: 99999"
+
+def test_find_closest_approach_invalid_duration():
+    propagator = Propagator()
+    detector = ConjunctionDetector(propagator)
+
+    satellite_a = propagator.create_satellite(
+        ISS_TLE[0],
+        ISS_TLE[1],
+    )
+
+    satellite_b = propagator.create_satellite(
+        NOAA15_TLE[0],
+        NOAA15_TLE[1],
+    )
+
+    start_time = datetime(
+        2026,
+        8,
+        24,
+        14,
+        0,
+        0,
+        tzinfo=timezone.utc,
+    )
+
+    try:
+        detector.find_closest_approach(
+            satellite_a=satellite_a,
+            satellite_b=satellite_b,
+            start_time=start_time,
+            duration_minutes=0,
+            step_seconds=60,
+        )
+        assert False, "Expected ValueError"
+    except ValueError as exc:
+        assert str(exc) == "duration_minutes must be greater than 0"
+
+
+def test_find_closest_approach_invalid_step():
+    propagator = Propagator()
+    detector = ConjunctionDetector(propagator)
+
+    satellite_a = propagator.create_satellite(
+        ISS_TLE[0],
+        ISS_TLE[1],
+    )
+
+    satellite_b = propagator.create_satellite(
+        NOAA15_TLE[0],
+        NOAA15_TLE[1],
+    )
+
+    start_time = datetime(
+        2026,
+        8,
+        24,
+        14,
+        0,
+        0,
+        tzinfo=timezone.utc,
+    )
+
+    try:
+        detector.find_closest_approach(
+            satellite_a=satellite_a,
+            satellite_b=satellite_b,
+            start_time=start_time,
+            duration_minutes=120,
+            step_seconds=0,
+        )
+        assert False, "Expected ValueError"
+    except ValueError as exc:
+        assert str(exc) == "step_seconds must be greater than 0"
