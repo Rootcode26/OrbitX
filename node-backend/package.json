@@ -5,6 +5,10 @@
   "main": "index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
+    "migrate:create": "node-pg-migrate create --migrations-dir src/db/migrations --migration-file-language ts --envPath .env",
+    "migrate:up": "node-pg-migrate up --migrations-dir src/db/migrations --envPath .env",
+    "migrate:down": "node-pg-migrate down --migrations-dir src/db/migrations --envPath .env",
+    "migrate:redo": "node-pg-migrate redo --migrations-dir src/db/migrations --envPath .env",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
