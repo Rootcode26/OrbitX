@@ -2,7 +2,7 @@ from datetime import datetime,timezone
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
-from sgp4_service import (
+from pythonbackend.services.propagator import (
     InvalidTLEError,
     SGP4PropagationError,
     propagate_tle,
