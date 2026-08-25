@@ -6,6 +6,7 @@ from pythonbackend.schemas.conjunctions import (
     ScreeningRequest,
     ScreeningResponse,
 )
+
 from pythonbackend.services.conjunction_detector import (
     ConjunctionDetector,
 )
