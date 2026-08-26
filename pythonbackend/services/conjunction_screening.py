@@ -80,6 +80,10 @@ class ConjunctionScreeningService:
             line1_b = satellite_b["tle_line1"]
             line2_b = satellite_b["tle_line2"]
 
+            # -------------------------------------------------
+            # Find closest approach
+            # -------------------------------------------------
+
             minimum_distance, closest_time = (
                 self.detector.find_closest_approach(
                     tle_a=(
@@ -96,11 +100,49 @@ class ConjunctionScreeningService:
                 )
             )
 
-            risk_level = (
-                self.risk_calculator.calculate_risk(
+            # -------------------------------------------------
+            # Calculate relative velocity at closest approach
+            # -------------------------------------------------
+
+            relative_speed = (
+                self.detector.relative_velocity_at_time(
+                    tle_a=(
+                        line1_a,
+                        line2_a,
+                    ),
+                    tle_b=(
+                        line1_b,
+                        line2_b,
+                    ),
+                    current_time=closest_time,
+                )
+            )
+
+            # -------------------------------------------------
+            # Calculate collision probability
+            # -------------------------------------------------
+
+            collision_probability = (
+                self.risk_calculator.calculate_collision_probability(
                     minimum_distance
                 )
             )
+
+            # -------------------------------------------------
+            # Calculate risk
+            # -------------------------------------------------
+
+            risk_level = (
+                self.risk_calculator.calculate_risk(
+                    minimum_distance,
+                    relative_speed,
+                )
+            )
+
+
+            # -------------------------------------------------
+            # Store result
+            # -------------------------------------------------
 
             results.append(
                 {
@@ -113,8 +155,15 @@ class ConjunctionScreeningService:
                         3,
                     ),
                     "time_of_closest_approach": closest_time,
+                    "relative_speed_km_s": round(
+                        relative_speed,
+                        6,
+                    ),
+                    "collision_probability": round(
+                        collision_probability,
+                        6,
+                    ),
                     "risk_level": risk_level,
                 }
             )
-
         return results

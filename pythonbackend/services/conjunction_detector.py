@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 
 from pythonbackend.services.propagator import (
+    calculate_relative_velocity,
     propagate_tle,
 )
 
@@ -47,6 +48,34 @@ class ConjunctionDetector:
         return ConjunctionDetector.calculate_distance(
             result_a.position_km,
             result_b.position_km,
+        )
+
+    @staticmethod
+    def relative_velocity_at_time(
+        tle_a: tuple[str, str],
+        tle_b: tuple[str, str],
+        current_time: datetime,
+    ) -> float:
+        """Calculate relative speed between two satellites at a specific time."""
+
+        line1_a, line2_a = tle_a
+        line1_b, line2_b = tle_b
+
+        result_a = propagate_tle(
+            line1_a,
+            line2_a,
+            current_time,
+        )
+
+        result_b = propagate_tle(
+            line1_b,
+            line2_b,
+            current_time,
+        )
+
+        return calculate_relative_velocity(
+            result_a.velocity_km_s,
+            result_b.velocity_km_s,
         )
 
     def find_closest_approach(
