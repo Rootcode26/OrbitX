@@ -1,5 +1,3 @@
-import logger from "../../../config/logger";
-
 export const getSatelitesData = async () => {
   const SATELITE_DATA_URL = "https://celestrak.org/NORAD/elements/gp.php?GROUP=ACTIVE&FORMAT=TLE";
 

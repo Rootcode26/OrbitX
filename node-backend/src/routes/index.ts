@@ -5,6 +5,6 @@ import sateliteDataRoutes from "../modules/satelites/routes/satelites-info.route
 const router: Router = Router();
 
 router.use("/health", healthRoutes);
-router.use("/satelites/info", sateliteDataRoutes);
+router.use("/satellites/info", sateliteDataRoutes);
 
 export default router;

@@ -5,6 +5,7 @@ import logger from "./config/logger";
 import helmet from "helmet"
 import router from "./routes/index.ts"
 import { closePool } from "./db/index.ts";
+import { fetchSgp4PropagationData } from "./scheduler/index.ts";
 
 const app: Application = express();
 const PORT = env.PORT
@@ -13,12 +14,13 @@ app.use(helmet())
 app.use(pinoHttp({ logger }));
 app.use(express.json())
 
-app.use("/api/v1", router)
+app.use("/api/v1", router);
+
+fetchSgp4PropagationData()
 
 const server = app.listen(PORT, () => {
   logger.info({ port: PORT }, "Express server started");
-})
-
+});
 
 let shuttingDown = false;
 async function shutdown(signal: "SIGTERM" | "SIGINT") {
