@@ -4,26 +4,35 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 
-RiskLevel = Literal[
-    "LOW",
-    "MEDIUM",
-    "HIGH",
-    "CRITICAL",
-]
+class SatelliteTLE(BaseModel):
+    norad_id: str = Field(
+        ...,
+        min_length=1,
+        description="NORAD catalog ID",
+    )
+
+    name: str = Field(
+        ...,
+        min_length=1,
+        description="Satellite name",
+    )
+
+    tle_line1: str = Field(
+        ...,
+        min_length=1,
+        description="TLE line 1",
+    )
+
+    tle_line2: str = Field(
+        ...,
+        min_length=1,
+        description="TLE line 2",
+    )
 
 
 class ConjunctionRequest(BaseModel):
-    satellite_a: str = Field(
-        ...,
-        min_length=1,
-        description="NORAD catalog ID of satellite A",
-    )
-
-    satellite_b: str = Field(
-        ...,
-        min_length=1,
-        description="NORAD catalog ID of satellite B",
-    )
+    satellite_a: SatelliteTLE
+    satellite_b: SatelliteTLE
 
     start_time: datetime
 
@@ -44,17 +53,29 @@ class ConjunctionResponse(BaseModel):
     satellite_a: str
     satellite_b: str
 
-    minimum_distance_km: float
-    time_of_closest_approach: datetime
+    closest_approach_time: datetime
+    miss_distance_km: float
+    relative_speed_km_s: float | None = None
 
-    risk_level: RiskLevel
+    collision_probability: float | None = None
 
+    risk_status: Literal[
+        "LOW",
+        "MEDIUM",
+        "HIGH",
+        "CRITICAL",
+    ]
+
+
+# ---------------------------------------------------------
+# Multi-satellite screening
+# ---------------------------------------------------------
 
 class ScreeningRequest(BaseModel):
-    satellite_ids: list[str] = Field(
+    satellites: list[SatelliteTLE] = Field(
         ...,
         min_length=2,
-        description="NORAD catalog IDs of satellites to screen",
+        description="Satellites with TLE data to screen",
     )
 
     start_time: datetime
@@ -72,19 +93,6 @@ class ScreeningRequest(BaseModel):
     )
 
 
-class ScreeningResult(BaseModel):
-    satellite_a: str
-    satellite_b: str
-
-    satellite_a_id: str
-    satellite_b_id: str
-
-    minimum_distance_km: float
-    time_of_closest_approach: datetime
-
-    risk_level: RiskLevel
-
-
 class ScreeningResponse(BaseModel):
     total_pairs_checked: int
-    results: list[ScreeningResult]
+    results: list[dict]

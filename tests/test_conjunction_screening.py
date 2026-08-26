@@ -1,7 +1,21 @@
 from datetime import datetime, timezone
 
+from fastapi.testclient import TestClient
+
+from pythonbackend.main import app
 from pythonbackend.services.conjunction_screening import (
     ConjunctionScreeningService,
+)
+
+
+ISS_TLE = (
+    "1 25544U 98067A   26235.72586232  .00009235  00000+0  17193-3 0  9995",
+    "2 25544  51.6333 325.8142 0007700  76.3746 283.8100 15.49592931582224",
+)
+
+NOAA15_TLE = (
+    "1 25338U 98030A   26235.98161312  .00000090  00000+0  54101-4 0  9993",
+    "2 25338  98.5066 254.7809 0010954 143.4018 216.7913 14.27163643470964",
 )
 
 
@@ -62,11 +76,23 @@ def test_screen_multiple_satellites():
         tzinfo=timezone.utc,
     )
 
+    satellites = [
+        {
+            "norad_id": "25544",
+            "name": "ISS (ZARYA)",
+            "tle_line1": ISS_TLE[0],
+            "tle_line2": ISS_TLE[1],
+        },
+        {
+            "norad_id": "25338",
+            "name": "NOAA 15",
+            "tle_line1": NOAA15_TLE[0],
+            "tle_line2": NOAA15_TLE[1],
+        },
+    ]
+
     results = service.screen(
-        satellite_ids=[
-            "25544",
-            "25338",
-        ],
+        satellites=satellites,
         start_time=start_time,
         duration_minutes=10,
         step_seconds=60,
@@ -79,9 +105,15 @@ def test_screen_multiple_satellites():
     assert result["satellite_a"] == "ISS (ZARYA)"
     assert result["satellite_b"] == "NOAA 15"
 
+    assert result["satellite_a_id"] == "25544"
+    assert result["satellite_b_id"] == "25338"
+
     assert result["minimum_distance_km"] > 0
 
-    assert result["time_of_closest_approach"] >= start_time
+    assert (
+        result["time_of_closest_approach"]
+        >= start_time
+    )
 
     assert result["risk_level"] in {
         "LOW",
@@ -90,18 +122,24 @@ def test_screen_multiple_satellites():
         "CRITICAL",
     }
 
-from fastapi.testclient import TestClient
-
-from pythonbackend.main import app
-
 
 def test_conjunction_screening_api():
     client = TestClient(app)
 
     payload = {
-        "satellite_ids": [
-            "25544",
-            "25338",
+        "satellites": [
+            {
+                "norad_id": "25544",
+                "name": "ISS (ZARYA)",
+                "tle_line1": ISS_TLE[0],
+                "tle_line2": ISS_TLE[1],
+            },
+            {
+                "norad_id": "25338",
+                "name": "NOAA 15",
+                "tle_line1": NOAA15_TLE[0],
+                "tle_line2": NOAA15_TLE[1],
+            },
         ],
         "start_time": "2026-08-24T14:00:00Z",
         "duration_minutes": 10,
@@ -118,7 +156,6 @@ def test_conjunction_screening_api():
     data = response.json()
 
     assert data["total_pairs_checked"] == 1
-
     assert len(data["results"]) == 1
 
     result = data["results"][0]
@@ -140,11 +177,53 @@ def test_conjunction_screening_api():
         "CRITICAL",
     }
 
+
+def test_conjunction_screening_api_invalid_tle():
+    client = TestClient(app)
+
+    payload = {
+        "satellites": [
+            {
+                "norad_id": "25544",
+                "name": "ISS (ZARYA)",
+                "tle_line1": "invalid line 1",
+                "tle_line2": "invalid line 2",
+            },
+            {
+                "norad_id": "25338",
+                "name": "NOAA 15",
+                "tle_line1": NOAA15_TLE[0],
+                "tle_line2": NOAA15_TLE[1],
+            },
+        ],
+        "start_time": "2026-08-24T14:00:00Z",
+        "duration_minutes": 10,
+        "step_seconds": 60,
+    }
+
+    response = client.post(
+        "/api/conjunctions/screen",
+        json=payload,
+    )
+
+    assert response.status_code in {
+        400,
+        422,
+    }
+
+
 def test_conjunction_screening_api_requires_two_satellites():
     client = TestClient(app)
 
     payload = {
-        "satellite_ids": ["25544"],
+        "satellites": [
+            {
+                "norad_id": "25544",
+                "name": "ISS (ZARYA)",
+                "tle_line1": ISS_TLE[0],
+                "tle_line2": ISS_TLE[1],
+            }
+        ],
         "start_time": "2026-08-24T14:00:00Z",
         "duration_minutes": 10,
         "step_seconds": 60,
@@ -158,35 +237,23 @@ def test_conjunction_screening_api_requires_two_satellites():
     assert response.status_code == 422
 
 
-def test_conjunction_screening_api_unknown_satellite():
-    client = TestClient(app)
-
-    payload = {
-        "satellite_ids": [
-            "25544",
-            "99999",
-        ],
-        "start_time": "2026-08-24T14:00:00Z",
-        "duration_minutes": 10,
-        "step_seconds": 60,
-    }
-
-    response = client.post(
-        "/api/conjunctions/screen",
-        json=payload,
-    )
-
-    assert response.status_code == 400
-    assert "TLE not found" in response.json()["detail"]
-
-
 def test_conjunction_screening_api_invalid_duration():
     client = TestClient(app)
 
     payload = {
-        "satellite_ids": [
-            "25544",
-            "25338",
+        "satellites": [
+            {
+                "norad_id": "25544",
+                "name": "ISS (ZARYA)",
+                "tle_line1": ISS_TLE[0],
+                "tle_line2": ISS_TLE[1],
+            },
+            {
+                "norad_id": "25338",
+                "name": "NOAA 15",
+                "tle_line1": NOAA15_TLE[0],
+                "tle_line2": NOAA15_TLE[1],
+            },
         ],
         "start_time": "2026-08-24T14:00:00Z",
         "duration_minutes": 0,
@@ -205,9 +272,19 @@ def test_conjunction_screening_api_invalid_step():
     client = TestClient(app)
 
     payload = {
-        "satellite_ids": [
-            "25544",
-            "25338",
+        "satellites": [
+            {
+                "norad_id": "25544",
+                "name": "ISS (ZARYA)",
+                "tle_line1": ISS_TLE[0],
+                "tle_line2": ISS_TLE[1],
+            },
+            {
+                "norad_id": "25338",
+                "name": "NOAA 15",
+                "tle_line1": NOAA15_TLE[0],
+                "tle_line2": NOAA15_TLE[1],
+            },
         ],
         "start_time": "2026-08-24T14:00:00Z",
         "duration_minutes": 10,

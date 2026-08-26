@@ -2,6 +2,11 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
+from pythonbackend.services.propagator import (
+    InvalidTLEError,
+    SGP4PropagationError,
+    propagate_tle,
+)
 
 class PropagationRequest(BaseModel):
     satellite_id: str = Field(

@@ -12,12 +12,12 @@ dependencies = [
     "uvicorn[standard]",
     "sgp4",
     "pydantic",
+    "httpx",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest",
-    "httpx",
 ]
 
 [tool.setuptools.packages.find]

@@ -4,20 +4,21 @@ from itertools import combinations
 from pythonbackend.services.conjunction_detector import (
     ConjunctionDetector,
 )
+from pythonbackend.services.propagator import (
+    InvalidTLEError,
+    SGP4PropagationError,
+)
 from pythonbackend.services.risk_calculator import RiskCalculator
-from pythonbackend.services.tle_service import TLEService
 
 
 class ConjunctionScreeningService:
-    """Screen multiple satellites for conjunctions."""
+    """Screen multiple satellites for conjunctions using supplied TLE data."""
 
     def __init__(
         self,
-        tle_service: TLEService | None = None,
         detector: ConjunctionDetector | None = None,
         risk_calculator: RiskCalculator | None = None,
     ):
-        self.tle_service = tle_service or TLEService()
         self.detector = detector or ConjunctionDetector()
         self.risk_calculator = (
             risk_calculator or RiskCalculator()
@@ -27,7 +28,7 @@ class ConjunctionScreeningService:
     def generate_pairs(
         satellite_ids: list[str],
     ) -> list[tuple[str, str]]:
-        """Generate all unique satellite pairs."""
+        """Generate all unique satellite ID pairs."""
 
         if len(satellite_ids) < 2:
             return []
@@ -41,32 +42,43 @@ class ConjunctionScreeningService:
 
     def screen(
         self,
-        satellite_ids: list[str],
+        satellites: list[dict],
         start_time: datetime,
         duration_minutes: int = 120,
         step_seconds: int = 60,
     ) -> list[dict]:
-        """Run conjunction analysis for all satellite pairs."""
+        """
+        Run conjunction analysis for all supplied satellites.
+
+        Each satellite must contain:
+            norad_id
+            name
+            tle_line1
+            tle_line2
+        """
+
+        if len(satellites) < 2:
+            raise ValueError(
+                "At least two satellites are required"
+            )
 
         results = []
 
-        pairs = self.generate_pairs(
-            satellite_ids
-        )
+        for satellite_a, satellite_b in combinations(
+            satellites,
+            2,
+        ):
+            satellite_a_id = satellite_a["norad_id"]
+            satellite_b_id = satellite_b["norad_id"]
 
-        for satellite_a_id, satellite_b_id in pairs:
+            name_a = satellite_a["name"]
+            name_b = satellite_b["name"]
 
-            name_a, line1_a, line2_a = (
-                self.tle_service.get_tle(
-                    satellite_a_id
-                )
-            )
+            line1_a = satellite_a["tle_line1"]
+            line2_a = satellite_a["tle_line2"]
 
-            name_b, line1_b, line2_b = (
-                self.tle_service.get_tle(
-                    satellite_b_id
-                )
-            )
+            line1_b = satellite_b["tle_line1"]
+            line2_b = satellite_b["tle_line2"]
 
             minimum_distance, closest_time = (
                 self.detector.find_closest_approach(
