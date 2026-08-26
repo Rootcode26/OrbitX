@@ -1,6 +1,8 @@
 from dataclasses import dataclass
-from datetime import datetime,timezone
-from sgp4.api import SGP4_ERRORS,Satrec,jday
+from datetime import datetime, timezone
+from math import sqrt
+
+from sgp4.api import SGP4_ERRORS, Satrec, jday
 
 class InvalidTLEError(Exception):
     pass
@@ -78,4 +80,23 @@ def propagate_tle(
         ),
         position_km=tuple(float(value) for value in position),
         velocity_km_s=tuple(float(value) for value in velocity),
+    )
+
+
+#-------------------for relative velocity---------------------------#
+
+def calculate_relative_velocity(
+    velocity_a: tuple[float, float, float],
+    velocity_b: tuple[float, float, float],
+) -> float:
+    """Calculate relative speed between two satellites in km/s."""
+
+    vx = velocity_a[0] - velocity_b[0]
+    vy = velocity_a[1] - velocity_b[1]
+    vz = velocity_a[2] - velocity_b[2]
+
+    return sqrt(
+        vx**2 +
+        vy**2 +
+        vz**2
     )

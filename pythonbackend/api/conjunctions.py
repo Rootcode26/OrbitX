@@ -72,22 +72,29 @@ def check_conjunction(
         )
 
         # -----------------------------------------------------
+        # Calculate relative velocity at closest approach
+        # -----------------------------------------------------
+
+        relative_speed = detector.relative_velocity_at_time(
+            tle_a=tle_a,
+            tle_b=tle_b,
+            current_time=closest_time,
+        )
+
+        collision_probability = (
+            risk_calculator.calculate_collision_probability(
+                minimum_distance
+            )
+        )
+
+        # -----------------------------------------------------
         # Calculate risk
         # -----------------------------------------------------
 
         risk_status = risk_calculator.calculate_risk(
-            minimum_distance
+            minimum_distance,
+            relative_speed,
         )
-
-        # -----------------------------------------------------
-        # Current detector calculates minimum distance.
-        #
-        # Relative velocity and collision probability are
-        # not currently calculated by ConjunctionDetector.
-        #
-        # Therefore these fields remain None until those
-        # calculations are implemented.
-        # -----------------------------------------------------
 
         return ConjunctionResponse(
             satellite_a=request.satellite_a.name,
@@ -97,8 +104,14 @@ def check_conjunction(
                 minimum_distance,
                 3,
             ),
-            relative_speed_km_s=None,
-            collision_probability=None,
+            relative_speed_km_s=round(
+                relative_speed,
+                4,
+            ),
+            collision_probability=round(
+                collision_probability,
+                4,
+            ),
             risk_status=risk_status,
         )
 

@@ -150,10 +150,43 @@ def test_find_closest_approach():
 def test_risk_calculator():
     calculator = RiskCalculator()
 
-    assert calculator.calculate_risk(0.5) == "CRITICAL"
-    assert calculator.calculate_risk(3.0) == "HIGH"
-    assert calculator.calculate_risk(7.0) == "MEDIUM"
-    assert calculator.calculate_risk(20.0) == "LOW"
+    assert calculator.calculate_risk(
+        0.5,
+        10.0,
+    ) == "CRITICAL"
+
+    assert calculator.calculate_risk(
+        3.0,
+        10.0,
+    ) == "HIGH"
+
+    assert calculator.calculate_risk(
+        7.0,
+        10.0,
+    ) == "MEDIUM"
+
+    assert calculator.calculate_risk(
+        20.0,
+        10.0,
+    ) == "LOW"
+
+    # Negligible relative velocity
+    assert calculator.calculate_risk(
+        0.5,
+        0.0,
+    ) == "LOW"
+
+    probability = calculator.calculate_collision_probability(1.0)
+
+    assert 0.0 <= probability <= 1.0
+    assert round(probability, 4) == 0.6065
+
+    assert calculator.calculate_collision_probability(0.0) == 1.0
+
+    assert (
+        calculator.calculate_collision_probability(100.0)
+        < 0.000001
+    )
 
 
 def test_conjunction_api():
