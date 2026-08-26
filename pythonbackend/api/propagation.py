@@ -64,13 +64,13 @@ def propagate_satellite(
     return PropagationResponse(
         prediction_time_utc=result.prediction_time_utc,
         position_km=Vector3(
-            x=x,
-            y=y,
-            z=z,
+            x=round(x,4),
+            y=round(y,4),
+            z=round(z,4)
         ),
         velocity_km_s=Vector3(
-            x=vx,
-            y=vy,
-            z=vz,
+            x=round(vx,4),
+            y=round(vy,4),
+            z=round(vz,4)
         ),
     )
