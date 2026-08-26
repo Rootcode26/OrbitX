@@ -160,8 +160,18 @@ def test_conjunction_api():
     client = TestClient(app)
 
     payload = {
-        "satellite_a": "25544",
-        "satellite_b": "25338",
+        "satellite_a": {
+            "norad_id": "25544",
+            "name": "ISS (ZARYA)",
+            "tle_line1": ISS_TLE[0],
+            "tle_line2": ISS_TLE[1],
+        },
+        "satellite_b": {
+            "norad_id": "25338",
+            "name": "NOAA 15",
+            "tle_line1": NOAA15_TLE[0],
+            "tle_line2": NOAA15_TLE[1],
+        },
         "start_time": "2026-08-24T14:00:00Z",
         "duration_minutes": 120,
         "step_seconds": 60,
@@ -179,11 +189,13 @@ def test_conjunction_api():
     assert data["satellite_a"] == "ISS (ZARYA)"
     assert data["satellite_b"] == "NOAA 15"
 
-    assert data["minimum_distance_km"] > 0
+    assert data["miss_distance_km"] > 0
+    assert "closest_approach_time" in data
+    assert "relative_speed_km_s" in data
+    assert "collision_probability" in data
+    assert "risk_status" in data
 
-    assert "time_of_closest_approach" in data
-
-    assert data["risk_level"] in {
+    assert data["risk_status"] in {
         "LOW",
         "MEDIUM",
         "HIGH",
@@ -309,12 +321,22 @@ def test_find_closest_approach_invalid_step():
         )
 
 
-def test_conjunction_api_unknown_satellite():
+def test_conjunction_api_invalid_tle():
     client = TestClient(app)
 
     payload = {
-        "satellite_a": "99999",
-        "satellite_b": "25338",
+        "satellite_a": {
+            "norad_id": "25544",
+            "name": "ISS (ZARYA)",
+            "tle_line1": "invalid line 1",
+            "tle_line2": "invalid line 2",
+        },
+        "satellite_b": {
+            "norad_id": "25338",
+            "name": "NOAA 15",
+            "tle_line1": NOAA15_TLE[0],
+            "tle_line2": NOAA15_TLE[1],
+        },
         "start_time": "2026-08-24T14:00:00Z",
         "duration_minutes": 120,
         "step_seconds": 60,
@@ -325,5 +347,7 @@ def test_conjunction_api_unknown_satellite():
         json=payload,
     )
 
-    assert response.status_code == 400
-    assert "TLE not found" in response.json()["detail"]
+    assert response.status_code in {
+        400,
+        422,
+    }
