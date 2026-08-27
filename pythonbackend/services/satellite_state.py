@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from math import (
     atan2,
     cos,
@@ -30,6 +30,7 @@ MINUTES_PER_DAY = 1440.0
 @dataclass(frozen=True)
 class SatelliteStateResult:
     observation_time_utc: datetime
+    tle_epoch: datetime
     current_speed_km_s: float
     current_height_km: float
     latitude_degrees: float
@@ -37,6 +38,9 @@ class SatelliteStateResult:
     apogee_height_km: float
     perigee_height_km: float
     orbital_period_minutes: float
+    inclination_degrees: float
+    raan_degrees: float
+    revolution_number: int
 
 
 def calculate_gmst_degrees(
@@ -313,8 +317,22 @@ def calculate_satellite_state(
         / mean_motion_revolutions_per_day
     )
 
+    epoch_year = int(satellite.epochyr)
+    full_epoch_year = (
+        1900 + epoch_year
+        if epoch_year >= 57
+        else 2000 + epoch_year
+    )
+    tle_epoch = datetime(
+        full_epoch_year,
+        1,
+        1,
+        tzinfo=timezone.utc,
+    ) + timedelta(days=float(satellite.epochdays) - 1.0)
+
     return SatelliteStateResult(
         observation_time_utc=observation_time,
+        tle_epoch=tle_epoch,
         current_speed_km_s=current_speed,
         current_height_km=current_height,
         latitude_degrees=latitude,
@@ -322,4 +340,7 @@ def calculate_satellite_state(
         apogee_height_km=apogee_height_km,
         perigee_height_km=perigee_height_km,
         orbital_period_minutes=orbital_period_minutes,
+        inclination_degrees=degrees(float(satellite.inclo)),
+        raan_degrees=degrees(float(satellite.nodeo)) % 360.0,
+        revolution_number=int(satellite.revnum),
     )

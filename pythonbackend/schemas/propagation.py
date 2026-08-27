@@ -1,37 +1,43 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from pythonbackend.services.propagator import (
-    InvalidTLEError,
-    SGP4PropagationError,
-    propagate_tle,
-)
+
+class SatellitePropagationInput(BaseModel):
+    norad_cat_id: int = Field(gt=0)
+    tle_line1: str = Field(min_length=1)
+    tle_line2: str = Field(min_length=1)
+
 
 class PropagationRequest(BaseModel):
-    satellite_id: str = Field(
-        ...,
+    prediction_time: datetime
+    satellites: list[SatellitePropagationInput] = Field(
         min_length=1,
-        description="NORAD catalog ID of the satellite",
+        max_length=500,
     )
 
-    prediction_time: datetime
+
+class Vector3(BaseModel):
+    x: float
+    y: float
+    z: float
+
+
+class PropagationResult(BaseModel):
+    norad_cat_id: int
+    position_km: Vector3
+    velocity_km_s: Vector3
+
+
+class SatelliteError(BaseModel):
+    norad_cat_id: int
+    code: Literal["INVALID_TLE", "PROPAGATION_FAILED"]
+    message: str
 
 
 class PropagationResponse(BaseModel):
-    satellite_id: str
-    satellite_name: str
-
     prediction_time_utc: datetime
-
-    position_km: tuple[
-        float,
-        float,
-        float,
-    ]
-
-    velocity_km_s: tuple[
-        float,
-        float,
-        float,
-    ]
+    reference_frame: Literal["TEME"] = "TEME"
+    results: list[PropagationResult]
+    errors: list[SatelliteError]
