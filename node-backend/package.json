@@ -9,7 +9,7 @@
     "migrate:up": "node-pg-migrate up --migrations-dir src/db/migrations --envPath .env",
     "migrate:down": "node-pg-migrate down --migrations-dir src/db/migrations --envPath .env",
     "migrate:redo": "node-pg-migrate redo --migrations-dir src/db/migrations --envPath .env",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --import tsx --test tests/*.test.ts"
   },
   "keywords": [],
   "author": "",

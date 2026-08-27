@@ -1,55 +1,92 @@
 import cron, { ScheduledTask } from "node-cron";
-import logger from "../config/logger";
-import { sgp4PropagationDataServices } from "../modules/satelites/services/satelites-sgp4-data.services";
-import { toLocalISOString } from "../helpers/localISOString";
+import { env } from "../config/env.ts";
+import logger from "../config/logger.ts";
+import { toLocalISOString } from "../helpers/localISOString.ts";
+import { syncCelestrakData } from "../modules/satelites/services/celestrak.services.ts";
+import { getSateliteCurrentData, getSgp4PropagationDataServices } from "../modules/satelites/services/satelites-sgp4-data.services.ts";
+import { SatelliteCurrentDataRequest, SatelliteCurrentDataResponse, Sgp4PropagationRequest, Sgp4PropagationResponse } from "../modules/satelites/types.ts";
 
-// export const fetchCelesTrackData = () => {
-//   const task = cron.schedule("0 */2 * * *", async () => {
-//     // fetch Celes track data
-//     // IF 403 Show data from DB
-//     // IF NOT 403 Fetch data from SGP4 and SATCAT
-//     // Then update the DB
-//     // Then show it in the frontend
-//   })
-// }
-
-export const fetchSgp4PropagationData = () => {
-  const task = cron.schedule("*/2 * * * *", async () => {
-
-    const currentTime = toLocalISOString();
-
-    logger.info({currentTime}, "Current Time");
-
-    const tleData = {
-      "tle_line1": "1 25544U 98067A   26238.50000000  .00012345  00000-0  22000-3 0  9999",
-      "tle_line2": "2 25544  51.6400 120.0000 0005000 100.0000 260.0000 15.50000000123456",
-      "prediction_time": currentTime
-    }
-
+export const fetchCelesTrakData = (): ScheduledTask => {
+  const runSync = async () => {
     try {
-      const predictionSgp4Data = await fetch("http://192.168.0.120:8000/propagation",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify(tleData)
-        });
+      const summary = await syncCelestrakData();
+      const hasFailure = summary.satcat.state === "failed" || summary.tle.state === "failed";
 
-      const predictionData = await predictionSgp4Data.json();
+      if (hasFailure) {
+        logger.error({ summary }, "CelesTrak sync completed with source failures");
+        return;
+      }
 
-      logger.info({ predictionData });
+      logger.info({ summary }, "CelesTrak sync completed");
+    } catch (err) {
+      logger.error({ err }, "CelesTrak sync failed");
     }
-    catch (err) {
-      logger.error({ err });
+  };
+
+  const task = cron.schedule(env.CELESTRAK_SYNC_CRON, runSync, {
+    name: "celestrak-sync",
+    noOverlap: true,
+    timezone: "UTC",
+  });
+
+  void task.execute();
+  return task;
+};
+
+export const fetchSgp4PropagationData = (): ScheduledTask => {
+  return cron.schedule("*/2 * * * *", async () => {
+    const currentTime = toLocalISOString();
+    logger.info({ currentTime }, "Current Time");
+
+    const propagationMockData: Sgp4PropagationRequest = {
+        satellites: [
+          {
+            norad_cat_id: 25544,
+            tle_line1:
+              "1 25544U 98067A   26235.72586232  .00009235  00000+0  17193-3 0  9995",
+            tle_line2:
+              "2 25544  51.6333 325.8142 0007700  76.3746 283.8100 15.49592931582224",
+          },
+          {
+            norad_cat_id: 25338,
+            tle_line1:
+              "1 25338U 98030A   26235.98161312  .00000090  00000+0  54101-4 0  9993",
+            tle_line2:
+              "2 25338  98.5066 254.7809 0010954 143.4018 216.7913 14.27163643470964",
+          },
+        ],
+        prediction_time:currentTime,
+      };
+
+    const satelliteCurrentStateMockData: SatelliteCurrentDataRequest = {
+      satellites: [
+        {
+          norad_cat_id: 25544,
+          tle_line1:
+            "1 25544U 98067A   26235.72586232  .00009235  00000+0  17193-3 0  9995",
+          tle_line2:
+            "2 25544  51.6333 325.8142 0007700  76.3746 283.8100 15.49592931582224",
+        },
+        {
+          norad_cat_id: 25338,
+          tle_line1:
+            "1 25338U 98030A   26235.98161312  .00000090  00000+0  54101-4 0  9993",
+          tle_line2:
+            "2 25338  98.5066 254.7809 0010954 143.4018 216.7913 14.27163643470964",
+        },
+      ],
+      observation_time: currentTime,
     };
 
-    handleShutdown(task);
-  })
-}
+    // const NOR
 
-      const sgp4Data: Sgp4PropagationResponse = await getSgp4PropagationDataServices(tleData, currentTime);
-      const currentSateliteData = await getSateliteCurrentData(tleData, currentTime);
+    try {
+
+      const sgp4Data: Sgp4PropagationResponse = await getSgp4PropagationDataServices(propagationMockData);
+      const currentSateliteData: SatelliteCurrentDataResponse = await getSateliteCurrentData(satelliteCurrentStateMockData);
+
+      // const insert_satelite_orbit_data_query = `INSERT INTO satelite_orbit_data (satellite_id, epoch, tle_line1, tle_line2, inclination_degrees, orbital_period_minutes, apogee_km, perigee_km, height_km, speed_km_s, latitude_degrees, longitude_degrees, calculated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`
+      // const insert_satelite_orbit_data_values = [currentSateliteData.orbital_period_minutes, currentSateliteData.apogee_height_km, currentSateliteData.perigee_height_km, currentSateliteData.current_height_km, currentSateliteData.current_speed_km_s, currentSateliteData.latitude_degrees, currentSateliteData.longitude_degrees, currentSateliteData.observation_time_utc]
 
     } catch (err) {
       logger.error({ err }, "Failed to fetch SGP4 propagation data");

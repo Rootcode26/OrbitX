@@ -18,5 +18,15 @@ export const env = {
   POSTRGES_DB: process.env.POSTGRES_DB,
   POSTGRES_PORT: parseInt(process.env.POSTGRES_PORT || "5432", 10),
   POSTGRES_PASSWORD: process.env.POSTGRES_PASSWORD,
-  DATABASE_URL:process.env.DATABASE_URL
+  DATABASE_URL:process.env.DATABASE_URL,
+  CELESTRAK_SATCAT_URL: process.env.CELESTRAK_SATCAT_URL
+    || "https://celestrak.org/satcat/records.php?GROUP=ACTIVE&FORMAT=JSON",
+  CELESTRAK_TLE_URL: process.env.CELESTRAK_TLE_URL
+    || "https://celestrak.org/NORAD/elements/gp.php?GROUP=ACTIVE&FORMAT=TLE",
+  CELESTRAK_USER_AGENT: process.env.CELESTRAK_USER_AGENT || "OrbitX/1.0",
+  CELESTRAK_SYNC_CRON: process.env.CELESTRAK_SYNC_CRON || "0 */2 * * *",
+  CELESTRAK_REQUEST_TIMEOUT_MS: parseInt(
+    process.env.CELESTRAK_REQUEST_TIMEOUT_MS || "30000",
+    10,
+  ),
 }

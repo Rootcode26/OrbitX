@@ -5,7 +5,11 @@ import logger from "./config/logger";
 import helmet from "helmet"
 import router from "./routes/index.ts"
 import { closePool } from "./db/index.ts";
-import { fetchSgp4PropagationData } from "./scheduler/index.ts";
+import {
+  fetchCelesTrakData,
+  fetchSgp4PropagationData,
+  stopScheduledTasks,
+} from "./scheduler/index.ts";
 
 const app: Application = express();
 const PORT = env.PORT
@@ -16,7 +20,10 @@ app.use(express.json())
 
 app.use("/api/v1", router);
 
-fetchSgp4PropagationData()
+const scheduledTasks = [
+  fetchCelesTrakData(),
+  fetchSgp4PropagationData(),
+];
 
 const server = app.listen(PORT, () => {
   logger.info({ port: PORT }, "Express server started");
@@ -29,6 +36,12 @@ async function shutdown(signal: "SIGTERM" | "SIGINT") {
   logger.info(`received ${signal}, shutting down`);
 
   const force = setTimeout(() => process.exit(1), 10_000);
+
+  try {
+    await stopScheduledTasks(scheduledTasks);
+  } catch (err) {
+    logger.error({ err }, "Failed to stop scheduled tasks cleanly");
+  }
 
   server.close(async () => {
     try {
