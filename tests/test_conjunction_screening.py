@@ -19,6 +19,10 @@ NOAA15_TLE = (
 )
 
 
+# =============================================================
+# Pair generation tests
+# =============================================================
+
 def test_generate_pairs():
     service = ConjunctionScreeningService()
 
@@ -63,6 +67,10 @@ def test_generate_pairs_with_no_satellites():
     assert pairs == []
 
 
+# =============================================================
+# Multi-satellite screening
+# =============================================================
+
 def test_screen_multiple_satellites():
     service = ConjunctionScreeningService()
 
@@ -102,18 +110,40 @@ def test_screen_multiple_satellites():
 
     result = results[0]
 
-    assert result["satellite_a"] == "ISS (ZARYA)"
-    assert result["satellite_b"] == "NOAA 15"
+    # ---------------------------------------------------------
+    # Satellite A
+    # ---------------------------------------------------------
 
-    assert result["satellite_a_id"] == "25544"
-    assert result["satellite_b_id"] == "25338"
+    assert result["satellite_a"]["name"] == "ISS (ZARYA)"
+    assert result["satellite_a"]["norad_cat_id"] == 25544
 
-    assert result["minimum_distance_km"] > 0
+    assert "position_at_tca_km" in result["satellite_a"]
+    assert "velocity_at_tca_km_s" in result["satellite_a"]
+
+    # ---------------------------------------------------------
+    # Satellite B
+    # ---------------------------------------------------------
+
+    assert result["satellite_b"]["name"] == "NOAA 15"
+    assert result["satellite_b"]["norad_cat_id"] == 25338
+
+    assert "position_at_tca_km" in result["satellite_b"]
+    assert "velocity_at_tca_km_s" in result["satellite_b"]
+
+    # ---------------------------------------------------------
+    # Main conjunction values
+    # ---------------------------------------------------------
+
+    assert result["minimum_separation_km"] > 0
 
     assert (
-        result["time_of_closest_approach"]
+        result["closest_approach_time_utc"]
         >= start_time
     )
+
+    assert result["relative_velocity_km_s"] >= 0
+
+    assert 0.0 <= result["collision_probability"] <= 1.0
 
     assert result["risk_level"] in {
         "LOW",
@@ -122,6 +152,26 @@ def test_screen_multiple_satellites():
         "CRITICAL",
     }
 
+    # ---------------------------------------------------------
+    # Additional response fields
+    # ---------------------------------------------------------
+
+    assert "calculated_at" in result
+    assert "reference_frame" in result
+    assert "screening_start_time" in result
+    assert "screening_duration_minutes" in result
+    assert "step_seconds" in result
+
+    assert "current_separation_km" in result
+    assert "current_closing_rate_km_s" in result
+    assert "encounter_angle_degrees" in result
+    assert "risk_score" in result
+    assert "separation_samples" in result
+
+
+# =============================================================
+# Screening API
+# =============================================================
 
 def test_conjunction_screening_api():
     client = TestClient(app)
@@ -160,15 +210,34 @@ def test_conjunction_screening_api():
 
     result = data["results"][0]
 
-    assert result["satellite_a"] == "ISS (ZARYA)"
-    assert result["satellite_b"] == "NOAA 15"
+    # ---------------------------------------------------------
+    # Satellite A
+    # ---------------------------------------------------------
 
-    assert result["satellite_a_id"] == "25544"
-    assert result["satellite_b_id"] == "25338"
+    assert result["satellite_a"]["name"] == "ISS (ZARYA)"
+    assert result["satellite_a"]["norad_cat_id"] == 25544
 
-    assert result["minimum_distance_km"] > 0
+    assert "position_at_tca_km" in result["satellite_a"]
+    assert "velocity_at_tca_km_s" in result["satellite_a"]
 
-    assert "time_of_closest_approach" in result
+    # ---------------------------------------------------------
+    # Satellite B
+    # ---------------------------------------------------------
+
+    assert result["satellite_b"]["name"] == "NOAA 15"
+    assert result["satellite_b"]["norad_cat_id"] == 25338
+
+    assert "position_at_tca_km" in result["satellite_b"]
+    assert "velocity_at_tca_km_s" in result["satellite_b"]
+
+    # ---------------------------------------------------------
+    # Conjunction values
+    # ---------------------------------------------------------
+
+    assert result["minimum_separation_km"] > 0
+    assert result["relative_velocity_km_s"] >= 0
+
+    assert 0.0 <= result["collision_probability"] <= 1.0
 
     assert result["risk_level"] in {
         "LOW",
@@ -177,6 +246,30 @@ def test_conjunction_screening_api():
         "CRITICAL",
     }
 
+    # ---------------------------------------------------------
+    # Additional fields
+    # ---------------------------------------------------------
+
+    assert "calculated_at" in result
+    assert "reference_frame" in result
+    assert "screening_start_time" in result
+    assert "screening_duration_minutes" in result
+    assert "step_seconds" in result
+
+    assert "current_separation_km" in result
+    assert "current_closing_rate_km_s" in result
+    assert "closest_approach_time_utc" in result
+    assert "minimum_separation_km" in result
+    assert "relative_velocity_km_s" in result
+    assert "encounter_angle_degrees" in result
+    assert "collision_probability" in result
+    assert "risk_score" in result
+    assert "separation_samples" in result
+
+
+# =============================================================
+# Invalid TLE
+# =============================================================
 
 def test_conjunction_screening_api_invalid_tle():
     client = TestClient(app)
@@ -212,6 +305,10 @@ def test_conjunction_screening_api_invalid_tle():
     }
 
 
+# =============================================================
+# Requires at least two satellites
+# =============================================================
+
 def test_conjunction_screening_api_requires_two_satellites():
     client = TestClient(app)
 
@@ -236,6 +333,10 @@ def test_conjunction_screening_api_requires_two_satellites():
 
     assert response.status_code == 422
 
+
+# =============================================================
+# Invalid duration
+# =============================================================
 
 def test_conjunction_screening_api_invalid_duration():
     client = TestClient(app)
@@ -267,6 +368,10 @@ def test_conjunction_screening_api_invalid_duration():
 
     assert response.status_code == 422
 
+
+# =============================================================
+# Invalid step
+# =============================================================
 
 def test_conjunction_screening_api_invalid_step():
     client = TestClient(app)

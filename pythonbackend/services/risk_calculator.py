@@ -64,3 +64,58 @@ class RiskCalculator:
             0.0,
             min(1.0, probability),
         )
+
+    def calculate_risk_score(
+        self,
+        distance_km: float,
+        relative_speed_km_s: float,
+        collision_probability: float,
+    ) -> float:
+        """
+        Calculate a preliminary normalized risk score from 0 to 100.
+
+        This is an MVP scoring model and is not an official
+        operational collision-risk metric.
+        """
+
+        # Distance component:
+        # smaller separation -> higher score
+        if distance_km <= 0:
+            distance_score = 100.0
+        else:
+            distance_score = max(
+                0.0,
+                min(
+                    100.0,
+                    100.0 * math.exp(
+                        -distance_km / 10.0
+                    ),
+                ),
+            )
+
+        # Relative-speed component.
+        # Higher relative speed means a more dynamic encounter.
+        speed_score = max(
+            0.0,
+            min(
+                100.0,
+                relative_speed_km_s * 10.0,
+            ),
+        )
+
+        # Probability component.
+        probability_score = (
+            collision_probability * 100.0
+        )
+
+        # Weighted MVP score.
+        score = (
+            0.50 * distance_score
+            + 0.20 * speed_score
+            + 0.30 * probability_score
+        )
+
+        return max(
+            0.0,
+            min(100.0, score),
+        )

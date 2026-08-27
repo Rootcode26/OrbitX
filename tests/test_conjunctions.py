@@ -219,21 +219,78 @@ def test_conjunction_api():
 
     data = response.json()
 
-    assert data["satellite_a"] == "ISS (ZARYA)"
-    assert data["satellite_b"] == "NOAA 15"
+    # ---------------------------------------------------------
+    # Satellite A
+    # ---------------------------------------------------------
 
-    assert data["miss_distance_km"] > 0
-    assert "closest_approach_time" in data
-    assert "relative_speed_km_s" in data
-    assert "collision_probability" in data
-    assert "risk_status" in data
+    assert data["satellite_a"]["name"] == "ISS (ZARYA)"
+    assert data["satellite_a"]["norad_cat_id"] == 25544
 
-    assert data["risk_status"] in {
+    assert "position_at_tca_km" in data["satellite_a"]
+    assert "velocity_at_tca_km_s" in data["satellite_a"]
+
+    # ---------------------------------------------------------
+    # Satellite B
+    # ---------------------------------------------------------
+
+    assert data["satellite_b"]["name"] == "NOAA 15"
+    assert data["satellite_b"]["norad_cat_id"] == 25338
+
+    assert "position_at_tca_km" in data["satellite_b"]
+    assert "velocity_at_tca_km_s" in data["satellite_b"]
+
+    # ---------------------------------------------------------
+    # Screening information
+    # ---------------------------------------------------------
+
+    assert "calculated_at" in data
+    assert "reference_frame" in data
+    assert "screening_start_time" in data
+    assert "screening_duration_minutes" in data
+    assert "step_seconds" in data
+
+    # ---------------------------------------------------------
+    # Conjunction results
+    # ---------------------------------------------------------
+
+    assert data["current_separation_km"] > 0
+    assert "current_closing_rate_km_s" in data
+
+    assert "closest_approach_time_utc" in data
+
+    assert data["minimum_separation_km"] > 0
+
+    assert data["relative_velocity_km_s"] >= 0
+
+    assert "encounter_angle_degrees" in data
+
+    # ---------------------------------------------------------
+    # Collision probability
+    # ---------------------------------------------------------
+
+    assert 0.0 <= data["collision_probability"] <= 1.0
+
+    # ---------------------------------------------------------
+    # Risk
+    # ---------------------------------------------------------
+
+    assert data["risk_level"] in {
         "LOW",
         "MEDIUM",
         "HIGH",
         "CRITICAL",
     }
+
+    assert 0.0 <= data["risk_score"] <= 100.0
+
+    # ---------------------------------------------------------
+    # Separation samples
+    # ---------------------------------------------------------
+
+    assert isinstance(
+        data["separation_samples"],
+        list,
+    )
 
 
 def test_local_provider_loads_iss_tle():
