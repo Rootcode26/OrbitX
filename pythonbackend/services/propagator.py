@@ -42,11 +42,44 @@ def datetime_to_julian_date(
 
     return float(jd), float(fraction)
 
+def validate_tle_pair(
+    tle_line1: str,
+    tle_line2: str,
+    expected_norad_cat_id: int | None = None,
+) -> tuple[str, str]:
+    """Validate the structure shared by the batch API contracts."""
+    line1 = tle_line1.strip()
+    line2 = tle_line2.strip()
+
+    if not line1.startswith("1 ") or not line2.startswith("2 "):
+        raise InvalidTLEError("TLE lines must start with '1 ' and '2 '")
+
+    if len(line1) < 64 or len(line2) < 64:
+        raise InvalidTLEError("TLE lines are incomplete")
+
+    if line1[2:7] != line2[2:7]:
+        raise InvalidTLEError("TLE catalogue numbers do not match")
+
+    if expected_norad_cat_id is not None:
+        try:
+            tle_norad_cat_id = int(line1[2:7])
+        except ValueError as error:
+            raise InvalidTLEError("TLE catalogue number is invalid") from error
+
+        if tle_norad_cat_id != expected_norad_cat_id:
+            raise InvalidTLEError(
+                "TLE catalogue number does not match norad_cat_id"
+            )
+
+    return line1, line2
+
+
 def propagate_tle(
     tle_line1: str,
     tle_line2: str,
     prediction_time: datetime,
 ) -> SGP4Result:
+
     try:
         satellite = Satrec.twoline2rv(
             tle_line1,
