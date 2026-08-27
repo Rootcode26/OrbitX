@@ -3,7 +3,7 @@ import { TleComparisonData } from "../types";
 
 export const getConjunctionServices = async (tleComparisonData: TleComparisonData) => {
   try {
-   const getConjuctionInfo = await fetch("http://192.168.0.119:8000/api/conjunctions/check",
+   const getConjuctionInfo = await fetch("http://192.168.0.101:8000/api/conjunctions/check",
     {
       method: "POST",
       headers: {

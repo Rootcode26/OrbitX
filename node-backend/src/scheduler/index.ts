@@ -48,16 +48,18 @@ export const fetchSgp4PropagationData = () => {
   })
 }
 
-  const handleShutdown = (task: ScheduledTask) => {
-    process.on("SIGTERM", () => {
-      logger.info("Shutting down scheduler");
-      task.stop();
-      process.exit(0);
-    })
+      const sgp4Data: Sgp4PropagationResponse = await getSgp4PropagationDataServices(tleData, currentTime);
+      const currentSateliteData = await getSateliteCurrentData(tleData, currentTime);
 
-    process.on("SIGINT", () => {
-      logger.info("Shutting down scheduler");
-      task.stop();
-      process.exit();
-    })
-  }
+    } catch (err) {
+      logger.error({ err }, "Failed to fetch SGP4 propagation data");
+    }
+  }, {
+    name: "sgp4-propagation",
+    noOverlap: true,
+  });
+};
+
+export const stopScheduledTasks = async (tasks: ScheduledTask[]): Promise<void> => {
+  await Promise.all(tasks.map((task) => task.stop()));
+};
