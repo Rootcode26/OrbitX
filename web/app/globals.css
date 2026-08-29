@@ -1,26 +1,175 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: #0c0c0b;
+  --nav: #100f0e;
+  --s1: #141413;
+  --s2: #1a1a18;
+  --s3: #222220;
+  --well: #0a0a09;
+  --field: #0c0d0f;
+  --bd: rgba(228, 222, 208, 0.085);
+  --bd2: rgba(228, 222, 208, 0.05);
+  --t1: #e9e7e2;
+  --t2: #9e9b95;
+  --t3: #8b8880;
+  --acc: #8fafc4;
+  --acc-text: #bcd4e2;
+  --acc-hover: #afccdd;
+  --acc-tint: rgba(143, 175, 196, 0.12);
+  --acc-border: rgba(143, 175, 196, 0.4);
+  --critical: #d25e58;
+  --critical-deep: #c4443e;
+  --critical-fill: rgba(196, 68, 62, 0.14);
+  --critical-border: rgba(196, 68, 62, 0.4);
+  --high: #c07c3a;
+  --high-fill: rgba(192, 124, 58, 0.13);
+  --high-border: rgba(192, 124, 58, 0.38);
+  --medium: #b09442;
+  --medium-fill: rgba(176, 148, 66, 0.11);
+  --medium-border: rgba(176, 148, 66, 0.32);
+  --low: #7b8790;
+  --low-fill: rgba(123, 135, 144, 0.11);
+  --low-border: rgba(123, 135, 144, 0.3);
+  --nominal: #5a9873;
+  --nominal-fill: rgba(90, 152, 115, 0.12);
+  --nominal-border: rgba(90, 152, 115, 0.35);
+  --object-active: #8fafc4;
+  --object-inactive: #787e85;
+  --object-rocket: #b2843c;
+  --object-debris: #7e7b74;
+  --object-focused: #92b8a2;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--bg);
+  --color-surface-1: var(--s1);
+  --color-surface-2: var(--s2);
+  --color-surface-3: var(--s3);
+  --color-well: var(--well);
+  --color-field: var(--field);
+  --color-text-primary: var(--t1);
+  --color-text-secondary: var(--t2);
+  --color-text-tertiary: var(--t3);
+  --color-accent: var(--acc);
+  --color-critical: var(--critical);
+  --color-high: var(--high);
+  --color-medium: var(--medium);
+  --color-low: var(--low);
+  --color-nominal: var(--nominal);
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-inter);
+  --font-serif: var(--font-inter);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--bg);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  min-width: 920px;
+  background: var(--bg);
+  color: var(--t1);
+  font-family: var(--font-inter), sans-serif;
+  font-size: 12.5px;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+a {
+  color: var(--acc-text);
+}
+
+::selection {
+  background: var(--acc-tint);
+  color: var(--t1);
+}
+
+* {
+  scrollbar-color: #45494d var(--bg);
+  scrollbar-width: thin;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #45494d;
+  border: 2px solid var(--bg);
+}
+
+.numeric {
+  font-family: var(--font-inter), sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+.timeline-callout {
+  font-family: var(--font-inter), sans-serif;
+}
+
+.panel-rise {
+  animation: ssaRise 0.18s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.status-pulse {
+  animation: ssaPulse 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.screened-events-panel {
+  container-type: inline-size;
+}
+
+@container (max-width: 350px) {
+  .risk-filter-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@keyframes ssaPulse {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes ssaRise {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ssaSweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
 }
