@@ -19,6 +19,8 @@ const CELESTRAK_HEADERS = {
 
 const OBJECT_TYPES = new Set(["PAY", "R/B", "DEB", "UNK"]);
 const OPERATIONAL_STATUSES = new Set(["+", "-", "P", "B", "S", "X", "D", "?"]);
+const DATA_STATUS_CODES = new Set(["NCE", "NIE", "NEA"]);
+const ORBIT_TYPES = new Set(["ORB", "LAN", "IMP", "DOC", "R/T"]);
 
 const toNullableString = (value: unknown): string | null => {
   if (typeof value !== "string") return null;
@@ -64,6 +66,8 @@ export const parseSatcatData = (payload: unknown): SatcatRecord[] => {
 
     const objectType = toNullableString(record.OBJECT_TYPE);
     const operationalStatus = toNullableString(record.OPS_STATUS_CODE);
+    const dataStatusCode = toNullableString(record.DATA_STATUS_CODE);
+    const orbitType = toNullableString(record.ORBIT_TYPE);
 
     return {
       noradCatId: parseNoradId(record.NORAD_CAT_ID),
@@ -78,6 +82,15 @@ export const parseSatcatData = (payload: unknown): SatcatRecord[] => {
       launchDate: toNullableDate(record.LAUNCH_DATE),
       launchSite: toNullableString(record.LAUNCH_SITE),
       decayDate: toNullableDate(record.DECAY_DATE),
+      internationalDesignator: toNullableString(record.OBJECT_ID),
+      radarCrossSection: toNullableNumber(record.RCS),
+      dataStatusCode: dataStatusCode && DATA_STATUS_CODES.has(dataStatusCode)
+        ? dataStatusCode as SatcatRecord["dataStatusCode"]
+        : null,
+      orbitCenter: toNullableString(record.ORBIT_CENTER),
+      orbitType: orbitType && ORBIT_TYPES.has(orbitType)
+        ? orbitType as SatcatRecord["orbitType"]
+        : null,
       orbitalPeriodMinutes: toNullableNumber(record.PERIOD),
       inclinationDegrees: toNullableNumber(record.INCLINATION),
       apogeeKm: toNullableNumber(record.APOGEE),
@@ -162,11 +175,7 @@ export const parseTleData = (payload: string): TleRecord[] => {
   return records;
 };
 
-const fetchCelestrak = async <T>(
-  url: string,
-  accept: string,
-  parse: (payload: string) => T[],
-): Promise<CelestrakFetchResult<T>> => {
+const fetchCelestrak = async <T>(url: string, accept: string, parse: (payload: string) => T[]): Promise<CelestrakFetchResult<T>> => {
   const response = await fetch(url, {
     headers: {
       ...CELESTRAK_HEADERS,
@@ -198,15 +207,64 @@ const fetchCelestrak = async <T>(
   };
 };
 
-export const fetchSatcatData = (): Promise<CelestrakFetchResult<SatcatRecord>> =>
-  fetchCelestrak(
-    env.CELESTRAK_SATCAT_URL,
-    "application/json",
-    (payload) => parseSatcatData(JSON.parse(payload)),
-  );
+const buildGroupUrl = (baseUrl: string, group: string): string => {
+  const url = new URL(baseUrl);
+  url.searchParams.set("GROUP", group);
+  return url.toString();
+};
 
-export const fetchTleData = (): Promise<CelestrakFetchResult<TleRecord>> =>
-  fetchCelestrak(env.CELESTRAK_TLE_URL, "text/plain", parseTleData);
+const deduplicateSatcatRecords = (records: SatcatRecord[]): SatcatRecord[] => Array.from(
+  new Map(records.map((record) => [record.noradCatId, record])).values(),
+);
+
+const deduplicateTleRecords = (records: TleRecord[]): TleRecord[] => Array.from(
+  records.reduce((latest, record) => {
+    const existing = latest.get(record.noradCatId);
+    if (!existing || Date.parse(record.epoch) > Date.parse(existing.epoch)) {
+      latest.set(record.noradCatId, record);
+    }
+    return latest;
+  }, new Map<number, TleRecord>()).values(),
+);
+
+const fetchCelestrakGroups = async <T>(baseUrl: string, accept: string, parse: (payload: string) => T[], deduplicate: (records: T[]) => T[]): Promise<CelestrakFetchResult<T>> => {
+  const results = await Promise.allSettled(
+    env.CELESTRAK_GROUPS.map((group) => fetchCelestrak(buildGroupUrl(baseUrl, group), accept, parse)),
+  );
+  const successful = results.flatMap((result) => result.status === "fulfilled" ? [result.value] : []);
+  const failures = results.flatMap((result, index) => result.status === "rejected"
+    ? [{ group: env.CELESTRAK_GROUPS[index], error: result.reason }]
+    : []);
+
+  if (successful.length === 0) {
+    throw new AggregateError(failures.map((failure) => failure.error), "Every CelesTrak group request failed");
+  }
+
+  if (failures.length > 0) {
+    logger.warn({ failures }, "Some CelesTrak groups failed; cached records will be retained");
+  }
+
+  const fresh = successful.filter((result) => result.state === "fresh");
+  return {
+    state: fresh.length > 0 ? "fresh" : "cached",
+    records: deduplicate(fresh.flatMap((result) => result.records)),
+    httpStatus: fresh.length > 0 ? fresh[0].httpStatus : successful[0].httpStatus,
+  };
+};
+
+export const fetchSatcatData = (): Promise<CelestrakFetchResult<SatcatRecord>> => fetchCelestrakGroups(
+  env.CELESTRAK_SATCAT_URL,
+  "application/json",
+  (payload) => parseSatcatData(JSON.parse(payload)),
+  deduplicateSatcatRecords,
+);
+
+export const fetchTleData = (): Promise<CelestrakFetchResult<TleRecord>> => fetchCelestrakGroups(
+  env.CELESTRAK_TLE_URL,
+  "text/plain",
+  parseTleData,
+  deduplicateTleRecords,
+);
 
 const errorMessage = (reason: unknown): string =>
   reason instanceof Error ? reason.message : String(reason);

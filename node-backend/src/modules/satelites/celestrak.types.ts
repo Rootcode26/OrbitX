@@ -15,6 +15,11 @@ export interface SatcatRecord {
   launchDate: string | null;
   launchSite: string | null;
   decayDate: string | null;
+  internationalDesignator: string | null;
+  radarCrossSection: number | null;
+  dataStatusCode: "NCE" | "NIE" | "NEA" | null;
+  orbitCenter: string | null;
+  orbitType: "ORB" | "LAN" | "IMP" | "DOC" | "R/T" | null;
   orbitalPeriodMinutes: number | null;
   inclinationDegrees: number | null;
   apogeeKm: number | null;
@@ -52,4 +57,9 @@ export interface CelestrakSourceSummary {
 export interface CelestrakSyncSummary {
   satcat: CelestrakSourceSummary;
   tle: CelestrakSourceSummary;
+}
+
+export interface CelestrakSyncRuntimeStatus {
+  completedAt: string;
+  summary: CelestrakSyncSummary;
 }

@@ -1,77 +1,50 @@
-import logger from "../../../config/logger";
+import { env } from "../../../config/env.ts";
 import {
   SatelliteCurrentDataRequest,
   SatelliteCurrentDataResponse,
   Sgp4PropagationRequest,
   Sgp4PropagationResponse,
   TleData,
-} from "../types";
+} from "../types.ts";
 
-export const sgp4PropagationDataServices = async (tleData: TleData) => {
-  try {
-  const sgp4Data = await fetch("http://192.168.0.120:8000/api/satellite-state/current",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(tleData)
-    }
-  );
-
-    const sgp4PropagationData = await sgp4Data.json();
-
-    return sgp4PropagationData;
-  }
-  catch (err) {
-    throw err;
-  }
-}
-
-
-
-export const getSgp4PropagationDataServices = async (
-  tleData: Sgp4PropagationRequest
-): Promise<Sgp4PropagationResponse> => {
-
-const sgp4PropagationResponse = await fetch("http://192.168.0.109:8000/propagation", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify({ ...tleData }),
-});
-
-const responseBody = await sgp4PropagationResponse.text();
-if (!sgp4PropagationResponse.ok) {
-  throw new Error(
-    `Propagation service error: ${sgp4PropagationResponse.status} ${sgp4PropagationResponse.statusText}: ${responseBody.slice(0, 500)}`,
-  );
-}
-
-  logger.info({ predictionData: JSON.parse(responseBody) });
-  return JSON.parse(responseBody);
-}
-
-export const getSateliteCurrentData = async (
-  tleData: SatelliteCurrentDataRequest,
-): Promise<SatelliteCurrentDataResponse> => {
-  const sateliteCurrentResponse = await fetch("http://192.168.0.109:8000/api/satellite-state/current", {
+const requestPropagationService = async <TResponse>(url: string, payload: unknown, serviceName: string): Promise<TResponse> => {
+  const response = await fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ ...tleData }),
+    body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(env.PROPAGATION_REQUEST_TIMEOUT_MS),
   });
+  const responseBody = await response.text();
 
-  const sateliteCurrentData = await sateliteCurrentResponse.text();
-
-  if (!sateliteCurrentResponse.ok) {
+  if (!response.ok) {
     throw new Error(
-      `Current satellite data  service error: ${sateliteCurrentResponse.status} ${sateliteCurrentResponse.statusText}: ${sateliteCurrentData.slice(0, 500)}`,
+      `${serviceName} error: ${response.status} ${response.statusText}: ${responseBody.slice(0, 500)}`,
     );
   }
 
-  logger.info({ sateliteData: JSON.parse(sateliteCurrentData) });
-  return JSON.parse(sateliteCurrentData);
-}
+  try {
+    return JSON.parse(responseBody) as TResponse;
+  } catch {
+    throw new Error(`${serviceName} returned invalid JSON`);
+  }
+};
+
+export const sgp4PropagationDataServices = async (tleData: TleData) => requestPropagationService<unknown>(
+  env.SATELLITE_CURRENT_STATE_URL,
+  tleData,
+  "Current satellite state service",
+);
+
+export const getSgp4PropagationDataServices = async (request: Sgp4PropagationRequest): Promise<Sgp4PropagationResponse> => requestPropagationService(
+  env.PROPAGATION_URL,
+  request,
+  "Propagation service",
+);
+
+export const getSateliteCurrentData = async (request: SatelliteCurrentDataRequest): Promise<SatelliteCurrentDataResponse> => requestPropagationService(
+  env.SATELLITE_CURRENT_STATE_URL,
+  request,
+  "Current satellite state service",
+);

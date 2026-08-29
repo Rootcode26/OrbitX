@@ -1,14 +1,81 @@
 import { Router } from "express";
+import { requireClerkAuth } from "../../../auth/clerk-auth.middleware.ts";
 import { getSatelitesTleData } from "../controllers/satelites-info.controllers";
-import { getSgp4Data } from "../controllers/satelites-sgp4-data.controllers";
-import { getConjuctionData } from "../controllers/satelites-conjuction.controllers";
-import { getMultipleConjuctionData } from "../controllers/satelites-multiple.controllers";
+import { getConjunctionData } from "../controllers/satelites-conjuction.controllers";
+import {
+  getCurrentSatelliteState,
+  listCurrentSatelliteStates,
+} from "../controllers/satellite-state.controllers.ts";
+import { getSatelliteHistoryRecords } from "../controllers/satellite-history.controllers.ts";
+import {
+  getSatelliteCatalogItem,
+  getSatelliteCatalogFilterOptions,
+  listSatelliteCatalog,
+} from "../controllers/satellite-catalog.controllers.ts";
+import {
+  getAnalyticsData,
+  getDataSources,
+  getOverviewData,
+} from "../controllers/satellite-dashboard.controllers.ts";
+import {
+  commissionSatelliteObject,
+  createSatellitePreview,
+  listCommissionedSatelliteObjects,
+} from "../controllers/satellite-maker.controllers.ts";
+import {
+  compareSatelliteFinderSelection,
+  screenSatelliteFinderCandidates,
+} from "../controllers/satellite-finder.controllers.ts";
+import {
+  getGroundStationPassData,
+  getSatelliteTrajectoryData,
+} from "../controllers/satellite-operations.controllers.ts";
+import {
+  getConjunctionAnalyticsData,
+  getConjunctionEventDetails,
+  listConjunctionEvents,
+} from "../controllers/conjunction-event.controllers.ts";
+import {
+  acknowledgeOperationsAlert,
+  createOperationsAlert,
+  listAlerts,
+  resolveOperationsAlert,
+} from "../controllers/alert.controllers.ts";
+import {
+  addUserWishlistSatellite,
+  listUserWishlist,
+  removeUserWishlistSatellite,
+} from "../controllers/wishlist.controllers.ts";
 
 const router: Router = Router();
 
 router.get("/all", getSatelitesTleData);
-router.get("/sgp4-data", getSgp4Data);
-router.get("/conjunction-data", getConjuctionData);
-router.use("/conjunction-data/multiple", getMultipleConjuctionData);
+router.get("/catalog", listSatelliteCatalog);
+router.get("/catalog/options", getSatelliteCatalogFilterOptions);
+router.get("/catalog/:noradCatId", getSatelliteCatalogItem);
+router.get("/overview", getOverviewData);
+router.get("/analytics", getAnalyticsData);
+router.get("/sources", getDataSources);
+router.get("/conjunctions/events", listConjunctionEvents);
+router.get("/conjunctions/events/:eventId", getConjunctionEventDetails);
+router.get("/conjunctions/analytics", getConjunctionAnalyticsData);
+router.get("/alerts", listAlerts);
+router.get("/wishlist", requireClerkAuth, listUserWishlist);
+router.get("/states/current", listCurrentSatelliteStates);
+router.get("/states/:noradCatId/current", getCurrentSatelliteState);
+router.get("/maker/commissioned", requireClerkAuth, listCommissionedSatelliteObjects);
+router.get("/:noradCatId/history", getSatelliteHistoryRecords);
+router.post("/maker/preview", createSatellitePreview);
+router.post("/maker/commission", requireClerkAuth, commissionSatelliteObject);
+router.post("/finder/compare", compareSatelliteFinderSelection);
+router.post("/conjunctions/screen", screenSatelliteFinderCandidates);
+router.post("/conjunction-data", getConjunctionData);
+router.post("/trajectory", getSatelliteTrajectoryData);
+router.post("/ground-station-passes", getGroundStationPassData);
+router.post("/alerts", createOperationsAlert);
+router.patch("/alerts/:alertId/acknowledge", acknowledgeOperationsAlert);
+router.patch("/alerts/:alertId/resolve", resolveOperationsAlert);
+router.post("/wishlist/:noradCatId", requireClerkAuth, addUserWishlistSatellite);
+router.delete("/wishlist/:noradCatId", requireClerkAuth, removeUserWishlistSatellite);
 
 export default router;

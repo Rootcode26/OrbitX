@@ -10,9 +10,26 @@ export interface CelestrakCacheSummary {
   tleRecords: number;
 }
 
-export const upsertSatcatRecords = async (
-  records: SatcatRecord[],
-): Promise<number> => {
+const celestrakCacheSummaryQuery = `
+  SELECT
+    (SELECT COUNT(*) FROM satellites)::text AS satellites,
+    (SELECT COUNT(DISTINCT satellite_id) FROM satelite_orbit_data)::text AS tle_records
+`;
+
+const storedTleRecordsQuery = `
+  SELECT DISTINCT ON (satellites.id)
+    satellites.norad_cat_id,
+    satellites.satellite_name,
+    orbit.epoch,
+    orbit.tle_line1,
+    orbit.tle_line2
+  FROM satellites
+  JOIN satelite_orbit_data orbit
+    ON orbit.satellite_id = satellites.id
+  ORDER BY satellites.id, orbit.epoch DESC, orbit.calculated_at DESC
+`;
+
+export const upsertSatcatRecords = async (records: SatcatRecord[]): Promise<number> => {
   if (records.length === 0) return 0;
 
   const client = await db.connect();
@@ -30,7 +47,12 @@ export const upsertSatcatRecords = async (
           operational_status,
           launch_date,
           launch_site,
-          decay_date
+          decay_date,
+          international_designator,
+          radar_cross_section,
+          data_status_code,
+          orbit_center,
+          orbit_type
         )
         SELECT *
         FROM UNNEST(
@@ -41,7 +63,12 @@ export const upsertSatcatRecords = async (
           $5::char[],
           $6::date[],
           $7::text[],
-          $8::date[]
+          $8::date[],
+          $9::varchar[],
+          $10::double precision[],
+          $11::varchar[],
+          $12::varchar[],
+          $13::varchar[]
         )
         ON CONFLICT (norad_cat_id) DO UPDATE SET
           satellite_name = EXCLUDED.satellite_name,
@@ -51,6 +78,11 @@ export const upsertSatcatRecords = async (
           launch_date = EXCLUDED.launch_date,
           launch_site = EXCLUDED.launch_site,
           decay_date = EXCLUDED.decay_date,
+          international_designator = EXCLUDED.international_designator,
+          radar_cross_section = EXCLUDED.radar_cross_section,
+          data_status_code = EXCLUDED.data_status_code,
+          orbit_center = EXCLUDED.orbit_center,
+          orbit_type = EXCLUDED.orbit_type,
           updated_at = CURRENT_TIMESTAMP
       `,
       [
@@ -62,6 +94,11 @@ export const upsertSatcatRecords = async (
         records.map((record) => record.launchDate),
         records.map((record) => record.launchSite),
         records.map((record) => record.decayDate),
+        records.map((record) => record.internationalDesignator),
+        records.map((record) => record.radarCrossSection),
+        records.map((record) => record.dataStatusCode),
+        records.map((record) => record.orbitCenter),
+        records.map((record) => record.orbitType),
       ],
     );
 
@@ -95,7 +132,7 @@ export const upsertSatcatRecords = async (
             ON satellites.norad_cat_id = incoming.norad_cat_id
           JOIN satelite_orbit_data orbit
             ON orbit.satellite_id = satellites.id
-          ORDER BY satellites.id, orbit.epoch DESC
+          ORDER BY satellites.id, orbit.epoch DESC, orbit.calculated_at DESC
         )
         UPDATE satelite_orbit_data orbit
         SET
@@ -125,9 +162,7 @@ export const upsertSatcatRecords = async (
   }
 };
 
-export const upsertTleRecords = async (
-  records: TleRecord[],
-): Promise<number> => {
+export const upsertTleRecords = async (records: TleRecord[]): Promise<number> => {
   if (records.length === 0) return 0;
 
   const client = await db.connect();
@@ -198,17 +233,15 @@ export const upsertTleRecords = async (
           SELECT existing.apogee_km, existing.perigee_km
           FROM satelite_orbit_data existing
           WHERE existing.satellite_id = satellites.id
-          ORDER BY existing.epoch DESC
+          ORDER BY existing.epoch DESC, existing.calculated_at DESC
           LIMIT 1
         ) previous ON true
-        ON CONFLICT (satellite_id, epoch) DO UPDATE SET
-          tle_line1 = EXCLUDED.tle_line1,
-          tle_line2 = EXCLUDED.tle_line2,
-          inclination_degrees = EXCLUDED.inclination_degrees,
-          orbital_period_minutes = EXCLUDED.orbital_period_minutes,
-          apogee_km = EXCLUDED.apogee_km,
-          perigee_km = EXCLUDED.perigee_km,
-          calculated_at = CURRENT_TIMESTAMP
+        WHERE NOT EXISTS (
+          SELECT 1
+          FROM satelite_orbit_data existing
+          WHERE existing.satellite_id = satellites.id
+            AND existing.epoch = incoming.epoch
+        )
       `,
       [
         records.map((record) => record.noradCatId),
@@ -236,11 +269,7 @@ export const getCelestrakCacheSummary = async (): Promise<CelestrakCacheSummary>
   const result = await db.query<{
     satellites: string;
     tle_records: string;
-  }>(`
-    SELECT
-      (SELECT COUNT(*) FROM satellites)::text AS satellites,
-      (SELECT COUNT(DISTINCT satellite_id) FROM satelite_orbit_data)::text AS tle_records
-  `);
+  }>(celestrakCacheSummaryQuery);
 
   return {
     satellites: Number(result.rows[0]?.satellites ?? 0),
@@ -255,18 +284,7 @@ export const getStoredTleRecords = async (): Promise<StoredTleRecord[]> => {
     epoch: Date;
     tle_line1: string;
     tle_line2: string;
-  }>(`
-    SELECT DISTINCT ON (satellites.id)
-      satellites.norad_cat_id,
-      satellites.satellite_name,
-      orbit.epoch,
-      orbit.tle_line1,
-      orbit.tle_line2
-    FROM satellites
-    JOIN satelite_orbit_data orbit
-      ON orbit.satellite_id = satellites.id
-    ORDER BY satellites.id, orbit.epoch DESC
-  `);
+  }>(storedTleRecordsQuery);
 
   return result.rows.map((row) => ({
     noradCatId: row.norad_cat_id,
