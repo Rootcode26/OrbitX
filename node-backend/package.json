@@ -9,7 +9,7 @@
     "migrate:up": "node-pg-migrate up --migrations-dir src/db/migrations --envPath .env",
     "migrate:down": "node-pg-migrate down --migrations-dir src/db/migrations --envPath .env",
     "migrate:redo": "node-pg-migrate redo --migrations-dir src/db/migrations --envPath .env",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --import tsx --test tests/*.test.ts"
   },
   "keywords": [],
   "author": "",
@@ -17,12 +17,14 @@
   "devEngines": {
     "packageManager": {
       "name": "pnpm",
-      "version": "^11.1.1",
+      "version": "11.1.1",
       "onFail": "download"
     }
   },
   "type": "module",
   "dependencies": {
+    "@clerk/express": "^2.1.63",
+    "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "helmet": "^8.3.0",
@@ -35,6 +37,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "^26.2.0",
     "@types/node-cron": "^3.0.11",

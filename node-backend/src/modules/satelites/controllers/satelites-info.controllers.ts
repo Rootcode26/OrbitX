@@ -10,8 +10,6 @@ export const getSatelitesTleData = async (req: Request, res: Response, next: Nex
         .send(sateliteData);
   }
   catch (err) {
-    console.error(err);
-    return
-    // return next(err);
+    return next(err);
   }
 }

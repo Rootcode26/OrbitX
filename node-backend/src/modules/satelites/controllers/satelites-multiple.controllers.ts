@@ -1,5 +1,4 @@
 import { Request, Response, NextFunction } from "express";
-import { getConjunctionServices } from "../services/satelites-conjuction.services";
 import { getMultipleConjunctionServices } from "../services/satalites-multiple.services";
 
 export const getMultipleConjuctionData = async (req: Request, res: Response, next: NextFunction) => {
