@@ -5,10 +5,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-COPY requirements.txt /app/pythonbackend/requirements.txt
-RUN pip install --no-cache-dir -r /app/pythonbackend/requirements.txt
+COPY requirements.txt .
 
-COPY . /app/pythonbackend
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
 
 EXPOSE 8000
 
