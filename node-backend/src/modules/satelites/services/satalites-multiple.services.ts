@@ -1,9 +1,10 @@
+import { env } from "../../../config/env";
 import logger from "../../../config/logger";
 import { MultipleTleComparisonData, TleComparisonData } from "../types";
 
 export const getMultipleConjunctionServices = async (tleMultipleComparisonData: MultipleTleComparisonData) => {
   try {
-   const getMultipleConjuctionInfo = await fetch("http://192.168.0.119:8000/api/conjunctions/screen",
+   const getMultipleConjuctionInfo = await fetch(env.CONJUNCTION_SCREEN_URL,
     {
       method: "POST",
       headers: {
