@@ -103,10 +103,12 @@ export async function fetchCommissionedSatellites(token: string): Promise<SavedM
 }
 
 export async function previewSatellite(
+  token: string,
   request: SatelliteMakerRequest,
 ): Promise<SatelliteMakerPreview> {
   const response = await requestJson<SatelliteMakerPreviewResponse>("/satellites/info/maker/preview", {
     method: "POST",
+    headers: authHeaders(token),
     body: JSON.stringify(request),
   });
   return response.data;

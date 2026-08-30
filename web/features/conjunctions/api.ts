@@ -15,13 +15,19 @@ import type {
   ConjunctionScreenResult,
 } from "./types";
 
+function authHeaders(token: string): HeadersInit {
+  return { Authorization: `Bearer ${token}` };
+}
+
 export async function checkConjunction(
+  token: string,
   request: ConjunctionCheckRequest,
 ): Promise<ConjunctionCheckResult> {
   const response = await requestJson<ConjunctionCheckApiResponse>(
     "/satellites/info/conjunction-data",
     {
       method: "POST",
+      headers: authHeaders(token),
       body: JSON.stringify(request),
     },
   );
@@ -62,12 +68,14 @@ export async function fetchConjunctionAnalytics(days = 14): Promise<ConjunctionA
 }
 
 export async function screenConjunctionCandidates(
+  token: string,
   request: ConjunctionScreenRequest,
 ): Promise<ConjunctionScreenResult> {
   const response = await requestJson<ConjunctionScreenResponse>(
     "/satellites/info/conjunctions/screen",
     {
       method: "POST",
+      headers: authHeaders(token),
       body: JSON.stringify(request),
     },
   );

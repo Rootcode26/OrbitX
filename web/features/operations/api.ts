@@ -70,11 +70,17 @@ interface GroundStationPassResponse {
   data: GroundStationPassResult;
 }
 
+function authHeaders(token: string): HeadersInit {
+  return { Authorization: `Bearer ${token}` };
+}
+
 export async function fetchSatelliteTrajectory(
+  token: string,
   request: SatelliteTrajectoryRequest,
 ): Promise<SatelliteTrajectoryResult> {
   const response = await requestJson<SatelliteTrajectoryResponse>("/satellites/info/trajectory", {
     method: "POST",
+    headers: authHeaders(token),
     body: JSON.stringify(request),
   });
   return response.data;
