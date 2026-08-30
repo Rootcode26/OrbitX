@@ -27,9 +27,18 @@ export function useCommissionedSatellites() {
 }
 
 export function useSatellitePreview() {
+  const auth = useOrbitAuth();
+
   return useMutation({
     mutationKey: ["satellite-maker", "preview"],
-    mutationFn: previewSatellite,
+    mutationFn: async (request: SatelliteMakerRequest) => {
+      const token = await auth.getToken();
+      if (!token) {
+        auth.openSignIn();
+        throw new Error("Authentication required");
+      }
+      return previewSatellite(token, request);
+    },
   });
 }
 

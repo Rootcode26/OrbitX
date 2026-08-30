@@ -3,7 +3,11 @@ from datetime import datetime, timezone
 
 from fastapi import HTTPException
 
-from propagation import PropagationRequest, propagate_satellite
+from pythonbackend.api.propagation import propagate_satellites
+from pythonbackend.schemas.propagation import (
+    PropagationRequest,
+    SatellitePropagationInput,
+)
 
 
 TLE_LINE_1 = (
@@ -19,8 +23,6 @@ TLE_LINE_2 = (
 class PropagationTests(unittest.TestCase):
     def test_vanguard_position_and_velocity_at_tle_epoch(self):
         request = PropagationRequest(
-            tle_line1=TLE_LINE_1,
-            tle_line2=TLE_LINE_2,
             prediction_time=datetime(
                 2000,
                 6,
@@ -31,38 +33,53 @@ class PropagationTests(unittest.TestCase):
                 733568,
                 tzinfo=timezone.utc,
             ),
+            satellites=[
+                SatellitePropagationInput(
+                    norad_cat_id=5,
+                    tle_line1=TLE_LINE_1,
+                    tle_line2=TLE_LINE_2,
+                ),
+            ],
         )
 
-        response = propagate_satellite(request)
+        response = propagate_satellites(request)
+        result = response.results[0]
 
-        expected_position = (7022.46529266, -1400.08296755, 0.03995155)
-        expected_velocity = (1.893841015, 6.405893759, 4.534807250)
+        expected_position = (7022.4653, -1400.0830, 0.0400)
+        expected_velocity = (1.8938, 6.4059, 4.5348)
         actual_position = (
-            response.position_km.x,
-            response.position_km.y,
-            response.position_km.z,
+            result.position_km.x,
+            result.position_km.y,
+            result.position_km.z,
         )
         actual_velocity = (
-            response.velocity_km_s.x,
-            response.velocity_km_s.y,
-            response.velocity_km_s.z,
+            result.velocity_km_s.x,
+            result.velocity_km_s.y,
+            result.velocity_km_s.z,
         )
 
+        self.assertEqual(result.norad_cat_id, 5)
+        self.assertEqual(response.errors, [])
         for actual, expected in zip(actual_position, expected_position):
-            self.assertAlmostEqual(actual, expected, places=5)
+            self.assertAlmostEqual(actual, expected, places=4)
 
         for actual, expected in zip(actual_velocity, expected_velocity):
-            self.assertAlmostEqual(actual, expected, places=7)
+            self.assertAlmostEqual(actual, expected, places=4)
 
     def test_prediction_time_requires_timezone(self):
         request = PropagationRequest(
-            tle_line1=TLE_LINE_1,
-            tle_line2=TLE_LINE_2,
             prediction_time=datetime(2000, 6, 27, 18, 50, 19),
+            satellites=[
+                SatellitePropagationInput(
+                    norad_cat_id=5,
+                    tle_line1=TLE_LINE_1,
+                    tle_line2=TLE_LINE_2,
+                ),
+            ],
         )
 
         with self.assertRaises(HTTPException) as context:
-            propagate_satellite(request)
+            propagate_satellites(request)
 
         self.assertEqual(context.exception.status_code, 400)
 

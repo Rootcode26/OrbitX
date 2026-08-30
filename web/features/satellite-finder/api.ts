@@ -27,11 +27,17 @@ interface SatelliteFinderComparisonResponse {
   data: SatelliteFinderComparisonResult;
 }
 
+function authHeaders(token: string): HeadersInit {
+  return { Authorization: `Bearer ${token}` };
+}
+
 export async function compareSatelliteFinder(
+  token: string,
   request: SatelliteFinderComparisonRequest,
 ): Promise<SatelliteFinderComparisonResult> {
   const response = await requestJson<SatelliteFinderComparisonResponse>("/satellites/info/finder/compare", {
     method: "POST",
+    headers: authHeaders(token),
     body: JSON.stringify(request),
   });
   return response.data;

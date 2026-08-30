@@ -12,6 +12,7 @@ import {
   fetchSgp4PropagationData,
   stopScheduledTasks,
 } from "./scheduler/index.ts";
+import { globalErrorHandler, notFoundHandler } from "./middleware/http-error.middleware.ts";
 
 const app: Application = express();
 const PORT = env.PORT
@@ -39,6 +40,8 @@ if (env.CLERK_PUBLISHABLE_KEY && env.CLERK_SECRET_KEY) {
 }
 
 app.use("/api/v1", router);
+app.use(notFoundHandler);
+app.use(globalErrorHandler);
 
 const scheduledTasks = [
   fetchCelesTrakData(),

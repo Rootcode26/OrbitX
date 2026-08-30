@@ -119,6 +119,11 @@ export const fetchSgp4PropagationData = (): ScheduledTask => {
     try {
 
       const tleRecords = await getLatestSateliteTleRecords(SATELITE_PROPAGATION_LIMIT, SATELITE_PROPAGATION_DEBRIS_LIMIT);
+      if (tleRecords.length === 0) {
+        logger.warn("Skipping SGP4 propagation batch because no TLE records are available");
+        return;
+      }
+
       const propagationData: Sgp4PropagationRequest = {
         satellites: tleRecords,
         prediction_time: currentTime

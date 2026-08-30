@@ -2,6 +2,8 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
+const nodeEnv = process.env.NODE_ENV || "development";
+
 const defaultCelestrakGroups = [
   "ACTIVE",
   "FENGYUN-1C-DEBRIS",
@@ -23,22 +25,34 @@ function requireEnv(key: string): string {
   return value;
 }
 
+const readProductionValue = (key: string, developmentFallback: string): string => {
+  const value = process.env[key]?.trim();
+  if (value) return value;
+  return nodeEnv === "production" ? requireEnv(key) : developmentFallback;
+};
+
 export const env = {
-  NODE_ENV: process.env.NODE_ENV || "development",
+  NODE_ENV: nodeEnv,
   PORT: parseInt(process.env.PORT || "5000", 10),
   PINO_LOG_LEVEL: process.env.PINO_LOG_LEVEL || "info",
-  CORS_ALLOWED_ORIGINS: (process.env.CORS_ALLOWED_ORIGINS
-    || "http://localhost:3000,http://127.0.0.1:3000,http://100.68.65.0:3000")
+  CORS_ALLOWED_ORIGINS: readProductionValue(
+    "CORS_ALLOWED_ORIGINS",
+    "http://localhost:3000,http://127.0.0.1:3000,http://100.68.65.0:3000",
+  )
     .split(",")
     .map((origin) => origin.trim())
     .filter(Boolean),
-  CLERK_PUBLISHABLE_KEY: process.env.CLERK_PUBLISHABLE_KEY,
-  CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY,
+  CLERK_PUBLISHABLE_KEY: nodeEnv === "production"
+    ? requireEnv("CLERK_PUBLISHABLE_KEY")
+    : process.env.CLERK_PUBLISHABLE_KEY,
+  CLERK_SECRET_KEY: nodeEnv === "production"
+    ? requireEnv("CLERK_SECRET_KEY")
+    : process.env.CLERK_SECRET_KEY,
   POSTGRES_USER: process.env.POSTGRES_USER,
   POSTRGES_DB: process.env.POSTGRES_DB,
   POSTGRES_PORT: parseInt(process.env.POSTGRES_PORT || "5432", 10),
   POSTGRES_PASSWORD: process.env.POSTGRES_PASSWORD,
-  DATABASE_URL:process.env.DATABASE_URL,
+  DATABASE_URL: requireEnv("DATABASE_URL"),
   CELESTRAK_SATCAT_URL: process.env.CELESTRAK_SATCAT_URL
     || "https://celestrak.org/satcat/records.php?GROUP=ACTIVE&FORMAT=JSON",
   CELESTRAK_TLE_URL: process.env.CELESTRAK_TLE_URL
@@ -47,16 +61,26 @@ export const env = {
   CELESTRAK_USER_AGENT: process.env.CELESTRAK_USER_AGENT || "OrbitX/1.0",
   CELESTRAK_SYNC_CRON: process.env.CELESTRAK_SYNC_CRON || "0 */2 * * *",
   SGP4_PROPAGATION_CRON: process.env.SGP4_PROPAGATION_CRON || "*/1 * * * *",
-  PROPAGATION_URL: process.env.PROPAGATION_URL
-    || "http://100.100.176.22:8000/propagation",
-  SATELLITE_CURRENT_STATE_URL: process.env.SATELLITE_CURRENT_STATE_URL
-    || "http://100.100.176.22:8000/api/satellite-state/current",
+  PROPAGATION_URL: readProductionValue(
+    "PROPAGATION_URL",
+    "http://100.100.176.22:8000/propagation",
+  ),
+  SATELLITE_CURRENT_STATE_URL: readProductionValue(
+    "SATELLITE_CURRENT_STATE_URL",
+    "http://100.100.176.22:8000/api/satellite-state/current",
+  ),
   PROPAGATION_REQUEST_TIMEOUT_MS: parseInt(
     process.env.PROPAGATION_REQUEST_TIMEOUT_MS || "30000",
     10,
   ),
-  CONJUNCTION_CHECK_URL: process.env.CONJUNCTION_CHECK_URL
-    || "http://100.100.176.22:8000/api/conjunctions/check",
+  CONJUNCTION_CHECK_URL: readProductionValue(
+    "CONJUNCTION_CHECK_URL",
+    "http://100.100.176.22:8000/api/conjunctions/check",
+  ),
+  CONJUNCTION_SCREEN_URL: readProductionValue(
+    "CONJUNCTION_SCREEN_URL",
+    "http://100.100.176.22:8000/api/conjunctions/screen",
+  ),
   CONJUNCTION_REQUEST_TIMEOUT_MS: parseInt(
     process.env.CONJUNCTION_REQUEST_TIMEOUT_MS || "30000",
     10,

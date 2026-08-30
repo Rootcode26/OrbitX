@@ -59,6 +59,10 @@ interface OperationsAlertRecordResponse {
   data: OperationsAlertRecord;
 }
 
+function authHeaders(token: string): HeadersInit {
+  return { Authorization: `Bearer ${token}` };
+}
+
 export async function fetchAlerts(
   query: OperationsAlertListQuery = {},
 ): Promise<OperationsAlertCollection> {
@@ -75,27 +79,29 @@ export async function fetchAlerts(
 }
 
 export async function createAlert(
+  token: string,
   request: OperationsAlertCreateRequest,
 ): Promise<OperationsAlertRecord> {
   const response = await requestJson<OperationsAlertRecordResponse>("/satellites/info/alerts", {
     method: "POST",
+    headers: authHeaders(token),
     body: JSON.stringify(request),
   });
   return response.data;
 }
 
-export async function acknowledgeAlert(alertId: string): Promise<OperationsAlertRecord> {
+export async function acknowledgeAlert(token: string, alertId: string): Promise<OperationsAlertRecord> {
   const response = await requestJson<OperationsAlertRecordResponse>(
     `/satellites/info/alerts/${alertId}/acknowledge`,
-    { method: "PATCH" },
+    { method: "PATCH", headers: authHeaders(token) },
   );
   return response.data;
 }
 
-export async function resolveAlert(alertId: string): Promise<OperationsAlertRecord> {
+export async function resolveAlert(token: string, alertId: string): Promise<OperationsAlertRecord> {
   const response = await requestJson<OperationsAlertRecordResponse>(
     `/satellites/info/alerts/${alertId}/resolve`,
-    { method: "PATCH" },
+    { method: "PATCH", headers: authHeaders(token) },
   );
   return response.data;
 }
