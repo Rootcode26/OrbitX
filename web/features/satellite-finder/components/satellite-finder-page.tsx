@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useDeferredValue, useMemo, useState } from "react";
 import { AppShell } from "@/components/layout/app-shell";
 import { Panel } from "@/components/ui/panel";
 import { ApiError } from "@/lib/api/client";
@@ -13,9 +13,11 @@ import { NearbySatelliteTable } from "./nearby-satellite-table";
 import { ReferenceSelector } from "./reference-selector";
 
 const pageSize = 10;
+const suggestionLimit = 100;
 
 export function SatelliteFinderPage() {
   const [referenceQuery, setReferenceQuery] = useState("");
+  const deferredReferenceQuery = useDeferredValue(referenceQuery);
   const [selectedNoradId, setSelectedNoradId] = useState<number | null>(() => {
     if (typeof window === "undefined") return null;
     const value = Number(new URLSearchParams(window.location.search).get("norad"));
@@ -25,8 +27,8 @@ export function SatelliteFinderPage() {
 
   const referenceCatalog = useSatelliteCatalog({
     page: 1,
-    pageSize: 20,
-    filters: { ...defaultCatalogFilters, search: referenceQuery },
+    pageSize: suggestionLimit,
+    filters: { ...defaultCatalogFilters, search: deferredReferenceQuery },
     sort: "name",
   });
   const nearby = useNearbySatellites(selectedNoradId, currentPage, pageSize);
@@ -65,7 +67,10 @@ export function SatelliteFinderPage() {
           <ReferenceSelector
             query={referenceQuery}
             onQueryChange={setReferenceQuery}
-            options={referenceCatalog.data?.objects ?? []}
+            options={deferredReferenceQuery === referenceQuery && !referenceCatalog.isPlaceholderData ? referenceCatalog.data?.objects ?? [] : []}
+            totalMatches={referenceCatalog.isPlaceholderData ? 0 : referenceCatalog.data?.page.total_items ?? 0}
+            loading={referenceCatalog.isPending || referenceCatalog.isFetching || deferredReferenceQuery !== referenceQuery}
+            error={referenceCatalog.isError}
             selectedId={selectedNoradId}
             primary={result?.primary_satellite ?? null}
             onSelect={(object) => {
