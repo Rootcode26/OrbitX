@@ -9,6 +9,7 @@ import router from "./routes/index.ts"
 import { closePool } from "./db/index.ts";
 import {
   fetchCelesTrakData,
+  fetchAllSgp4PropagationData,
   fetchSgp4PropagationData,
   stopScheduledTasks,
 } from "./scheduler/index.ts";
@@ -46,6 +47,7 @@ app.use(globalErrorHandler);
 const scheduledTasks = [
   fetchCelesTrakData(),
   fetchSgp4PropagationData(),
+  fetchAllSgp4PropagationData(),
 ];
 
 const server = app.listen(PORT, () => {

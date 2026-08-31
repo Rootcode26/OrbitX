@@ -54,6 +54,18 @@ const labelColors: Record<GlobeObjectClass, string> = {
   focused: "#A9CCB8",
 };
 
+// Every object renders as a point/marker, but full orbit rings are drawn only
+// for the first few — hundreds of orbit tubes would be slow and unreadable.
+const ORBIT_LIMIT = 14;
+
+// Real-time-accurate motion: satellite mean motion and Earth rotation are both
+// driven by their true periods, expressed in simulated seconds. This factor
+// accelerates the simulated clock so the mechanics are watchable — at 1×
+// playback a ~90 min LEO orbit takes ~90 s, GEO barely moves, and one Earth
+// rotation takes ~24 min — all in correct proportion.
+const TIME_ACCELERATION = 60;
+const EARTH_ANGULAR_RATE = (2 * Math.PI) / 86_400; // rad per simulated second
+
 function SpaceBackdrop({ compact }: { compact: boolean }) {
   return (
     <div aria-hidden="true" className="pointer-events-none absolute inset-0">
@@ -499,11 +511,13 @@ export function OrbitalGlobe({
     const userObjectIdSet = new Set(userObjectIds);
 
     objects.forEach((object, index) => {
-      const orbitColor = orbitColors[object.objectClass];
-      const orbitPlane = createOrbit(object, orbitColor);
-      orbitPlane.userData.objectId = object.id;
-      orbitPlane.userData.objectClass = object.objectClass;
-      orbitGroup.add(orbitPlane);
+      if (index < ORBIT_LIMIT) {
+        const orbitColor = orbitColors[object.objectClass];
+        const orbitPlane = createOrbit(object, orbitColor);
+        orbitPlane.userData.objectId = object.id;
+        orbitPlane.userData.objectClass = object.objectClass;
+        orbitGroup.add(orbitPlane);
+      }
 
       const position = orbitPosition(object, object.phase);
       const marker = new THREE.Mesh(
@@ -612,6 +626,9 @@ export function OrbitalGlobe({
       smoothedMotionScale = THREE.MathUtils.damp(smoothedMotionScale, targetMotionScale, 5.5, delta);
       if (Math.abs(smoothedMotionScale - targetMotionScale) < 0.0005) smoothedMotionScale = targetMotionScale;
       const simulationDelta = delta * smoothedMotionScale;
+      // Simulated seconds elapsed this frame — drives orbital motion and Earth
+      // spin at their true rates (camera auto-rotate stays on the raw scale).
+      const orbitalDelta = simulationDelta * TIME_ACCELERATION;
 
       controls.autoRotateSpeed = THREE.MathUtils.damp(
         controls.autoRotateSpeed,
@@ -637,7 +654,7 @@ export function OrbitalGlobe({
 
       const visibleIds = visibleObjectIdsRef.current;
       objects.forEach((object, index) => {
-        catalogPhases[index] = (catalogPhases[index] + object.angularSpeed * simulationDelta) % (Math.PI * 2);
+        catalogPhases[index] = (catalogPhases[index] + object.angularSpeed * orbitalDelta) % (Math.PI * 2);
         const isVisible = objectClassVisible(object.objectClass, filtersRef.current) && (!visibleIds || visibleIds.has(object.id));
         if (isVisible) {
           const semiMinor = object.orbitRadius * Math.sqrt(1 - object.eccentricity * object.eccentricity);
@@ -660,7 +677,7 @@ export function OrbitalGlobe({
           ? [...animatedObjects, featuredObjectRef.current]
           : animatedObjects;
         movingObjects.forEach((animatedObject) => {
-          animatedObject.phase = (animatedObject.phase + animatedObject.object.angularSpeed * simulationDelta) % (Math.PI * 2);
+          animatedObject.phase = (animatedObject.phase + animatedObject.object.angularSpeed * orbitalDelta) % (Math.PI * 2);
           const position = orbitPosition(animatedObject.object, animatedObject.phase);
           animatedObject.marker.position.copy(position);
           animatedObject.label?.position.copy(position).multiplyScalar(1.08);
@@ -686,7 +703,7 @@ export function OrbitalGlobe({
         material.color.lerp(orbitTargetColor, 1 - Math.exp(-8 * delta));
       });
 
-      earth.rotation.y += simulationDelta * 0.018;
+      earth.rotation.y += orbitalDelta * EARTH_ANGULAR_RATE;
       clouds.rotation.y = earth.rotation.y * 1.14;
       atmosphereEdge.rotation.y = earth.rotation.y * 0.82;
       renderer.render(scene, camera);

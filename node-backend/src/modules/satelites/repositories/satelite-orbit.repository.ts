@@ -102,6 +102,22 @@ const latestPropagationTlesQuery = `
   LIMIT $1
 `;
 
+const allLatestPropagationTlesQuery = `
+  SELECT DISTINCT ON (satellite.id)
+    satellite.norad_cat_id,
+    orbit.tle_line1,
+    orbit.tle_line2
+  FROM satellites satellite
+  JOIN satelite_orbit_data orbit
+    ON orbit.satellite_id = satellite.id
+  WHERE orbit.tle_line1 IS NOT NULL
+    AND orbit.tle_line2 IS NOT NULL
+  ORDER BY
+    satellite.id,
+    orbit.epoch DESC NULLS LAST,
+    orbit.calculated_at DESC
+`;
+
 export const getLatestSatelliteTlesByNoradIds = async (noradCatIds: number[]): Promise<LatestSatelliteTle[]> => {
   if (noradCatIds.length === 0) return [];
 
@@ -129,4 +145,14 @@ export const getLatestSateliteTleRecords = async (limit: number, debrisLimit: nu
   });
 
   return satelites;
+};
+
+export const getAllLatestOrbitalObjectTleRecords = async () => {
+  const data = await db.query<SatelitePropagationRequestInfo>(allLatestPropagationTlesQuery);
+
+  return data.rows.map((satelite) => ({
+    norad_cat_id: satelite.norad_cat_id,
+    tle_line1: satelite.tle_line1,
+    tle_line2: satelite.tle_line2,
+  }));
 };

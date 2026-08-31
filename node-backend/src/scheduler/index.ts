@@ -5,9 +5,16 @@ import { toLocalISOString } from "../helpers/localISOString.ts";
 import { syncCelestrakData } from "../modules/satelites/services/celestrak.services.ts";
 import { getSateliteCurrentData, getSgp4PropagationDataServices } from "../modules/satelites/services/satelites-sgp4-data.services.ts";
 import { SatelliteCurrentDataRequest, SatelliteCurrentDataResponse, Sgp4PropagationRequest, Sgp4PropagationResponse } from "../modules/satelites/types.ts";
-import { getLatestSateliteTleRecords } from "../modules/satelites/repositories/satelite-orbit.repository.ts";
+import {
+  getAllLatestOrbitalObjectTleRecords,
+  getLatestSateliteTleRecords,
+} from "../modules/satelites/repositories/satelite-orbit.repository.ts";
 import { storeSatellitePropagationResults } from "../modules/satelites/repositories/satelite-propagation.repository.ts";
-import { SATELITE_PROPAGATION_DEBRIS_LIMIT, SATELITE_PROPAGATION_LIMIT } from "../constants/index.ts";
+import {
+  SATELITE_PROPAGATION_BATCH_SIZE,
+  SATELITE_PROPAGATION_DEBRIS_LIMIT,
+  SATELITE_PROPAGATION_LIMIT,
+} from "../constants/index.ts";
 import { recordCelestrakSyncStatus } from "../modules/satelites/services/celestrak-sync-status.services.ts";
 import { createAlertIfNotOpen } from "../modules/satelites/services/alert.services.ts";
 import { AlertCreateRequest } from "../modules/satelites/types.ts";
@@ -69,108 +76,147 @@ export const fetchCelesTrakData = (): ScheduledTask => {
   return task;
 };
 
-export const fetchSgp4PropagationData = (): ScheduledTask => {
-  return cron.schedule(env.SGP4_PROPAGATION_CRON, async () => {
-    const currentTime = toLocalISOString();
-    logger.info({ currentTime }, "Current Time");
+type PropagationTleRecords = Sgp4PropagationRequest["satellites"];
 
-    // const propagationMockData: Sgp4PropagationRequest = {
-    //     satellites: [
-    //       {
-    //         norad_cat_id: 25544,
-    //         tle_line1:
-    //           "1 25544U 98067A   26235.72586232  .00009235  00000+0  17193-3 0  9995",
-    //         tle_line2:
-    //           "2 25544  51.6333 325.8142 0007700  76.3746 283.8100 15.49592931582224",
-    //       },
-    //       {
-    //         norad_cat_id: 25338,
-    //         tle_line1:
-    //           "1 25338U 98030A   26235.98161312  .00000090  00000+0  54101-4 0  9993",
-    //         tle_line2:
-    //           "2 25338  98.5066 254.7809 0010954 143.4018 216.7913 14.27163643470964",
-    //       },
-    //     ],
-    //     prediction_time:currentTime,
-    //   };
+let activePropagationJob: string | null = null;
 
-    // const satelliteCurrentStateMockData: SatelliteCurrentDataRequest = {
-    //   satellites: [
-    //     {
-    //       norad_cat_id: 25544,
-    //       tle_line1:
-    //         "1 25544U 98067A   26235.72586232  .00009235  00000+0  17193-3 0  9995",
-    //       tle_line2:
-    //         "2 25544  51.6333 325.8142 0007700  76.3746 283.8100 15.49592931582224",
-    //     },
-    //     {
-    //       norad_cat_id: 25338,
-    //       tle_line1:
-    //         "1 25338U 98030A   26235.98161312  .00000090  00000+0  54101-4 0  9993",
-    //       tle_line2:
-    //         "2 25338  98.5066 254.7809 0010954 143.4018 216.7913 14.27163643470964",
-    //     },
-    //   ],
-    //   observation_time: currentTime,
-    // };
+const processPropagationRecords = async (
+  tleRecords: PropagationTleRecords,
+  currentTime: string,
+  jobName: string,
+) => {
+  const storageSummary = {
+    requested: 0,
+    stored: 0,
+    skippedNoradIds: [] as number[],
+  };
+  const batches = Math.ceil(tleRecords.length / SATELITE_PROPAGATION_BATCH_SIZE);
 
-    // const NOR
+  for (let offset = 0; offset < tleRecords.length; offset += SATELITE_PROPAGATION_BATCH_SIZE) {
+    const batch = tleRecords.slice(offset, offset + SATELITE_PROPAGATION_BATCH_SIZE);
+    const batchNumber = Math.floor(offset / SATELITE_PROPAGATION_BATCH_SIZE) + 1;
+    const propagationData: Sgp4PropagationRequest = {
+      satellites: batch,
+      prediction_time: currentTime,
+    };
+    const satelliteCurrentStateData: SatelliteCurrentDataRequest = {
+      observation_time: currentTime,
+      satellites: batch.map((data) => ({
+        ...data,
+        norad_cat_id: Number(data.norad_cat_id),
+      })),
+    };
 
-    try {
+    logger.info(
+      { jobName, batchNumber, batches, objects: batch.length },
+      "Starting SGP4 propagation batch",
+    );
 
-      const tleRecords = await getLatestSateliteTleRecords(SATELITE_PROPAGATION_LIMIT, SATELITE_PROPAGATION_DEBRIS_LIMIT);
-      if (tleRecords.length === 0) {
-        logger.warn("Skipping SGP4 propagation batch because no TLE records are available");
-        return;
-      }
+    const [sgp4Data, currentSateliteData]: [Sgp4PropagationResponse, SatelliteCurrentDataResponse] = await Promise.all([
+      getSgp4PropagationDataServices(propagationData),
+      getSateliteCurrentData(satelliteCurrentStateData),
+    ]);
+    const batchStorage = await storeSatellitePropagationResults(
+      batch,
+      sgp4Data,
+      currentSateliteData,
+    );
 
-      const propagationData: Sgp4PropagationRequest = {
-        satellites: tleRecords,
-        prediction_time: currentTime
-      }
+    storageSummary.requested += batchStorage.requested;
+    storageSummary.stored += batchStorage.stored;
+    storageSummary.skippedNoradIds.push(...batchStorage.skippedNoradIds);
 
-      const satelliteCurrentStateData: SatelliteCurrentDataRequest = {
-        observation_time: currentTime,
-        satellites: tleRecords.map((data) => {
-          return { ...data, norad_cat_id: Number(data.norad_cat_id) };
-        })
-      }
+    logger.info(
+      { jobName, batchNumber, batches, storageSummary: batchStorage },
+      "SGP4 propagation batch stored",
+    );
+  }
 
-      const sgp4Data: Sgp4PropagationResponse = await getSgp4PropagationDataServices(propagationData);
-      const currentSateliteData: SatelliteCurrentDataResponse = await getSateliteCurrentData(satelliteCurrentStateData);
+  return storageSummary;
+};
 
-      const storageSummary = await storeSatellitePropagationResults(
-        tleRecords,
-        sgp4Data,
-        currentSateliteData,
-      );
+const runPropagationJob = async (
+  jobName: string,
+  loadTleRecords: () => Promise<PropagationTleRecords>,
+): Promise<void> => {
+  if (activePropagationJob) {
+    logger.warn(
+      { jobName, activePropagationJob },
+      "Skipping SGP4 propagation job because another propagation job is active",
+    );
+    return;
+  }
 
-      logger.info({ storageSummary }, "SGP4 propagation snapshots stored");
+  activePropagationJob = jobName;
+  const currentTime = toLocalISOString();
 
-      if (storageSummary.skippedNoradIds.length > 0) {
-        await recordSchedulerAlert({
-          severity: "MEDIUM",
-          source: "PROPAGATION",
-          title: "Propagation batch completed with partial failures",
-          description: `${storageSummary.skippedNoradIds.length} of ${storageSummary.requested} requested satellites were not stored.`,
-        });
-      }
-
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Unknown propagation error";
-      await recordSchedulerAlert({
-        severity: "HIGH",
-        source: "PROPAGATION",
-        title: "Propagation batch failed",
-        description: message,
-      });
-      logger.error({ err }, "Failed to fetch SGP4 propagation data");
+  try {
+    const tleRecords = await loadTleRecords();
+    if (tleRecords.length === 0) {
+      logger.warn({ jobName }, "Skipping SGP4 propagation job because no TLE records are available");
+      return;
     }
-  }, {
+
+    logger.info(
+      { jobName, currentTime, objects: tleRecords.length },
+      "Starting SGP4 propagation job",
+    );
+    const storageSummary = await processPropagationRecords(tleRecords, currentTime, jobName);
+
+    logger.info({
+      jobName,
+      requested: storageSummary.requested,
+      stored: storageSummary.stored,
+      skipped: storageSummary.skippedNoradIds.length,
+    }, "SGP4 propagation job completed");
+
+    if (storageSummary.skippedNoradIds.length > 0) {
+      await recordSchedulerAlert({
+        severity: "MEDIUM",
+        source: "PROPAGATION",
+        title: `${jobName} propagation completed with partial failures`,
+        description: `${storageSummary.skippedNoradIds.length} of ${storageSummary.requested} requested orbital objects were not stored.`,
+      });
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown propagation error";
+    await recordSchedulerAlert({
+      severity: "HIGH",
+      source: "PROPAGATION",
+      title: `${jobName} propagation failed`,
+      description: message,
+    });
+    logger.error({ err, jobName }, "Failed to run SGP4 propagation job");
+  } finally {
+    activePropagationJob = null;
+  }
+};
+
+export const fetchSgp4PropagationData = (): ScheduledTask => cron.schedule(
+  env.SGP4_PROPAGATION_CRON,
+  () => runPropagationJob(
+    "Priority",
+    () => getLatestSateliteTleRecords(
+      SATELITE_PROPAGATION_LIMIT,
+      SATELITE_PROPAGATION_DEBRIS_LIMIT,
+    ),
+  ),
+  {
     name: "sgp4-propagation",
     noOverlap: true,
-  });
-};
+    timezone: "UTC",
+  },
+);
+
+export const fetchAllSgp4PropagationData = (): ScheduledTask => cron.schedule(
+  env.SGP4_FULL_PROPAGATION_CRON,
+  () => runPropagationJob("Full orbital catalog", getAllLatestOrbitalObjectTleRecords),
+  {
+    name: "sgp4-full-propagation",
+    noOverlap: true,
+    timezone: "UTC",
+  },
+);
 
 export const stopScheduledTasks = async (tasks: ScheduledTask[]): Promise<void> => {
   await Promise.all(tasks.map((task) => task.stop()));

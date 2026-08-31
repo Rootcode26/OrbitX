@@ -11,7 +11,7 @@ export function OrbitalSituation() {
   const overview = useOverview();
   const states = useCurrentSatelliteStates(100);
   const objects = useMemo(
-    () => selectBalancedGlobeObjects((states.data ?? []).map((state) => state.globeObject)),
+    () => selectBalancedGlobeObjects((states.data ?? []).map((state) => state.globeObject), 100, 100),
     [states.data],
   );
 

@@ -20,7 +20,7 @@ export function LiveTrackingPage() {
   const [finderIds, setFinderIds] = useState<Set<number>>(new Set());
   const currentStates = useCurrentSatelliteStates(100);
   const objects = useMemo(
-    () => selectBalancedGlobeObjects((currentStates.data ?? []).map((satellite) => satellite.globeObject)),
+    () => selectBalancedGlobeObjects((currentStates.data ?? []).map((satellite) => satellite.globeObject), 100, 100),
     [currentStates.data],
   );
   const effectiveObjectId = selectedObjectId ?? objects[0]?.id ?? null;

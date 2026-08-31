@@ -8,9 +8,30 @@ import type {
 } from "./types";
 
 const activeOperationalStatuses = new Set(["+", "P", "B", "S", "X", "ACTIVE"]);
+const DEGREES_TO_RADIANS = Math.PI / 180;
 
 function isActivePayload(status: string | null) {
   return status !== null && activeOperationalStatuses.has(status.toUpperCase());
+}
+
+// True argument of latitude — the satellite's real angular position measured in
+// its (inclined) orbital plane from the ascending node. Placing the marker here
+// puts it where the object actually is, unlike an equatorial x/y projection.
+function argumentOfLatitude(
+  position: { x: number; y: number; z: number },
+  inclinationDegrees: number,
+  raanDegrees: number,
+) {
+  const inclination = inclinationDegrees * DEGREES_TO_RADIANS;
+  const raan = raanDegrees * DEGREES_TO_RADIANS;
+  const nodeX = Math.cos(raan);
+  const nodeY = Math.sin(raan);
+  const perpX = -Math.cos(inclination) * Math.sin(raan);
+  const perpY = Math.cos(inclination) * Math.cos(raan);
+  const perpZ = Math.sin(inclination);
+  const alongNode = position.x * nodeX + position.y * nodeY;
+  const alongPerp = position.x * perpX + position.y * perpY + position.z * perpZ;
+  return Math.atan2(alongPerp, alongNode);
 }
 
 function objectType(value: string | null, status: string | null): LiveSatelliteState["objectType"] {
@@ -32,8 +53,9 @@ export function toGlobeObject(state: CurrentSatelliteStatesResponse["data"]["sta
     raan: state.raan_degrees,
     argumentOfPerigee: 0,
     eccentricity,
-    phase: Math.atan2(state.position_km.y, state.position_km.x),
-    angularSpeed: 0.055 * (95 / Math.max(state.orbital_period_minutes, 1)),
+    phase: argumentOfLatitude(state.position_km, state.inclination_degrees, state.raan_degrees),
+    // True mean motion (radians per simulated second) from the real period.
+    angularSpeed: (2 * Math.PI) / (Math.max(state.orbital_period_minutes, 1) * 60),
   };
 }
 

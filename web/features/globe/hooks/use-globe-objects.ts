@@ -26,7 +26,8 @@ function toGlobeObject(satellite: SavedMakerSatellite): GlobeObject {
     argumentOfPerigee: satellite.argument_of_perigee_degrees,
     eccentricity: Math.min(satellite.eccentricity * 8, 0.16),
     phase: satellite.phase_degrees * degreesToRadians,
-    angularSpeed: 0.118 * (92.8 / periodMinutes),
+    // True mean motion (radians per simulated second) from the real period.
+    angularSpeed: (2 * Math.PI) / (Math.max(periodMinutes, 1) * 60),
   };
 }
 

@@ -52,6 +52,7 @@ export function toFeaturedGlobeObject(config: SatelliteDraftConfig, orbit: Deriv
     argumentOfPerigee: config.argumentOfPerigeeDegrees,
     eccentricity: Math.min(orbit.eccentricity * 8, 0.16),
     phase: config.phaseDegrees * Math.PI / 180,
-    angularSpeed: 0.118 * (92.8 / orbit.orbitalPeriodMinutes),
+    // True mean motion (radians per simulated second) from the real period.
+    angularSpeed: (2 * Math.PI) / (Math.max(orbit.orbitalPeriodMinutes, 1) * 60),
   };
 }

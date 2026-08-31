@@ -61,6 +61,7 @@ export const env = {
   CELESTRAK_USER_AGENT: process.env.CELESTRAK_USER_AGENT || "OrbitX/1.0",
   CELESTRAK_SYNC_CRON: process.env.CELESTRAK_SYNC_CRON || "0 */2 * * *",
   SGP4_PROPAGATION_CRON: process.env.SGP4_PROPAGATION_CRON || "*/1 * * * *",
+  SGP4_FULL_PROPAGATION_CRON: process.env.SGP4_FULL_PROPAGATION_CRON || "0 */8 * * *",
   PROPAGATION_URL: readProductionValue(
     "PROPAGATION_URL",
     "http://100.100.176.22:8000/propagation",
