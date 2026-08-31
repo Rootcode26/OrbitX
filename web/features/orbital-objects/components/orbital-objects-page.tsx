@@ -16,36 +16,6 @@ import { ObjectFilters } from "./object-filters";
 
 const pageSize = 10;
 
-function ObjectCatalogSkeleton() {
-  return (
-    <section aria-label="Loading object catalog" aria-busy="true" className="border border-[var(--bd)] bg-surface-1">
-      <header className="flex min-h-10 items-center justify-between border-b border-[var(--bd)] bg-surface-2 px-3.5 py-[11px]">
-        <Skeleton className="h-3 w-28" />
-        <Skeleton className="h-2.5 w-24" />
-      </header>
-      <div className="grid grid-cols-[1.2fr_1.5fr_.7fr_.6fr_.6fr_.6fr_.6fr_.6fr] gap-4 border-b border-[var(--bd2)] px-3.5 py-3">
-        {Array.from({ length: 8 }).map((_, index) => <Skeleton key={index} className="h-2.5 w-full" />)}
-      </div>
-      <div>
-        {Array.from({ length: pageSize }).map((_, row) => (
-          <div key={row} className="grid min-h-[40px] grid-cols-[1.2fr_1.5fr_.7fr_.6fr_.6fr_.6fr_.6fr_.6fr] items-center gap-4 border-b border-[var(--bd2)] px-3.5">
-            {Array.from({ length: 8 }).map((_, column) => (
-              <Skeleton key={column} className={`h-2.5 ${column === 1 ? "w-4/5" : "w-full"}`} />
-            ))}
-          </div>
-        ))}
-      </div>
-      <footer className="flex items-center justify-between border-t border-[var(--bd)] px-3.5 py-2.5">
-        <Skeleton className="h-2.5 w-24" />
-        <div className="flex gap-1">
-          <Skeleton className="h-7 w-16" />
-          <Skeleton className="h-7 w-12" />
-        </div>
-      </footer>
-    </section>
-  );
-}
-
 function ObjectDetailSkeleton() {
   return (
     <aside aria-label="Loading object details" aria-busy="true" className="border border-[var(--bd)] bg-surface-1">
@@ -109,6 +79,7 @@ export function OrbitalObjectsPage() {
     ? selectedObjectId
     : pageObjects[0]?.id ?? "";
   const selectedObject = pageObjects.find((object) => object.id === effectiveSelectedId) ?? pageObjects[0];
+  const catalogLoading = catalog.isPending || catalog.isFetching;
 
   function updateFilters(changes: Partial<CatalogFilters>) {
     setFilters((current) => ({ ...current, ...changes }));
@@ -142,21 +113,20 @@ export function OrbitalObjectsPage() {
             onSortChange={updateSort}
             onReset={resetFilters}
           />
-          {catalog.isPending ? <ObjectCatalogSkeleton /> : (
-            <ObjectCatalog
-              objects={pageObjects}
-              selectedObjectId={effectiveSelectedId}
-              currentPage={currentPage}
-              totalPages={catalog.data?.page.total_pages ?? 0}
-              totalObjects={catalog.data?.page.total_items ?? 0}
-              pageSize={pageSize}
-              onSelect={setSelectedObjectId}
-              onPageChange={setCurrentPage}
-            />
-          )}
+          <ObjectCatalog
+            objects={pageObjects}
+            loading={catalogLoading}
+            selectedObjectId={effectiveSelectedId}
+            currentPage={currentPage}
+            totalPages={catalog.data?.page.total_pages ?? 0}
+            totalObjects={catalog.data?.page.total_items ?? 0}
+            pageSize={pageSize}
+            onSelect={setSelectedObjectId}
+            onPageChange={setCurrentPage}
+          />
         </div>
         <div className="min-[1240px]:sticky min-[1240px]:top-[70px]">
-          {catalog.isPending ? <ObjectDetailSkeleton /> : selectedObject ? <ObjectDetail
+          {catalogLoading ? <ObjectDetailSkeleton /> : selectedObject ? <ObjectDetail
             key={selectedObject.id}
             object={selectedObject}
             wishlisted={wishlist.includes(selectedObject.noradCatId)}

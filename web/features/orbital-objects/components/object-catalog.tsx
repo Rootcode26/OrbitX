@@ -1,4 +1,5 @@
 import { Panel } from "@/components/ui/panel";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { CatalogObjectType, ObjectCatalogProps } from "../types";
 import { CatalogPagination } from "./catalog-pagination";
 
@@ -22,6 +23,7 @@ function numericValue(value: number | null, digits: number): string {
 
 export function ObjectCatalog({
   objects,
+  loading,
   selectedObjectId,
   currentPage,
   totalPages,
@@ -34,9 +36,9 @@ export function ObjectCatalog({
   const last = Math.min(currentPage * pageSize, totalObjects);
 
   return (
-    <Panel title="Object catalog" meta={<span className="numeric">{first}–{last} of {totalObjects} objects</span>}>
+    <Panel title="Object catalog" meta={<span className="numeric">{loading ? "Loading objects…" : `${first}–${last} of ${totalObjects} objects`}</span>}>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[780px] border-collapse text-left">
+        <table aria-busy={loading} className="w-full min-w-[780px] border-collapse text-left">
           <thead className="bg-[rgba(228,222,208,.016)] text-[10.5px] text-text-tertiary">
             <tr>
               <th className="px-3.5 py-[9px] font-medium">Object</th>
@@ -50,7 +52,15 @@ export function ObjectCatalog({
             </tr>
           </thead>
           <tbody>
-            {objects.map((object) => {
+            {loading ? Array.from({ length: pageSize }).map((_, row) => (
+              <tr key={row} className="border-t border-[var(--bd2)]">
+                {Array.from({ length: 8 }).map((__, column) => (
+                  <td key={column} className="px-3.5 py-[14px]">
+                    <Skeleton className={`h-2.5 ${column === 1 ? "w-4/5" : "w-full"}`} />
+                  </td>
+                ))}
+              </tr>
+            )) : objects.map((object) => {
               const selected = object.id === selectedObjectId;
               return (
                 <tr
@@ -71,9 +81,9 @@ export function ObjectCatalog({
             })}
           </tbody>
         </table>
-        {objects.length === 0 ? <div className="px-4 py-14 text-center text-text-tertiary">No objects match the selected filters.</div> : null}
+        {!loading && objects.length === 0 ? <div className="px-4 py-14 text-center text-text-tertiary">No objects match the selected filters.</div> : null}
       </div>
-      {totalPages > 0 ? <CatalogPagination currentPage={currentPage} totalPages={totalPages} onPageChange={onPageChange} /> : null}
+      {!loading && totalPages > 0 ? <CatalogPagination currentPage={currentPage} totalPages={totalPages} onPageChange={onPageChange} /> : null}
     </Panel>
   );
 }

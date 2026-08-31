@@ -48,6 +48,7 @@ export interface ObjectFiltersProps {
 
 export interface ObjectCatalogProps {
   objects: OrbitalObject[];
+  loading: boolean;
   selectedObjectId: string;
   currentPage: number;
   totalPages: number;
