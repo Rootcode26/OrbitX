@@ -6,13 +6,19 @@ const typeLabels: Record<CatalogObjectType, string> = {
   PAYLOAD: "PAYLOAD",
   "ROCKET BODY": "R/B",
   DEBRIS: "DEBRIS",
+  UNKNOWN: "UNKNOWN",
 };
 
 const typeColors: Record<CatalogObjectType, string> = {
   PAYLOAD: "text-accent",
   "ROCKET BODY": "text-[#b2843c]",
   DEBRIS: "text-text-tertiary",
+  UNKNOWN: "text-text-tertiary",
 };
+
+function numericValue(value: number | null, digits: number): string {
+  return value === null ? "—" : value.toFixed(digits);
+}
 
 export function ObjectCatalog({
   objects,
@@ -56,10 +62,10 @@ export function ObjectCatalog({
                   <td className="px-3.5 py-[9px] text-[12.5px] font-medium">{object.name}</td>
                   <td className="numeric px-3.5 py-[9px] text-right text-[11px] text-text-secondary">{object.noradCatId}</td>
                   <td className={`numeric px-3.5 py-[9px] text-right text-[8.5px] font-semibold tracking-[0.07em] ${typeColors[object.objectType]}`}>{typeLabels[object.objectType]}</td>
-                  <td className="numeric px-3.5 py-[9px] text-right text-[11px]">{object.altitudeKm.toFixed(1)}</td>
-                  <td className="numeric px-3.5 py-[9px] text-right text-[11px] text-text-secondary">{object.inclinationDegrees.toFixed(2)}</td>
-                  <td className="numeric px-3.5 py-[9px] text-right text-[11px] text-text-secondary">{object.velocityKmS.toFixed(2)}</td>
-                  <td className="numeric px-3.5 py-[9px] text-right text-[10px] text-text-tertiary">{object.lastUpdatedMinutes}m</td>
+                  <td className="numeric px-3.5 py-[9px] text-right text-[11px]">{numericValue(object.altitudeKm, 1)}</td>
+                  <td className="numeric px-3.5 py-[9px] text-right text-[11px] text-text-secondary">{numericValue(object.inclinationDegrees, 2)}</td>
+                  <td className="numeric px-3.5 py-[9px] text-right text-[11px] text-text-secondary">{numericValue(object.velocityKmS, 2)}</td>
+                  <td className="numeric px-3.5 py-[9px] text-right text-[10px] text-text-tertiary">{object.lastUpdatedMinutes === null ? "—" : `${object.lastUpdatedMinutes}m`}</td>
                 </tr>
               );
             })}

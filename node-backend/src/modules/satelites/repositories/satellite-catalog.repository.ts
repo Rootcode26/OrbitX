@@ -78,10 +78,10 @@ interface CatalogFilter {
 }
 
 const buildCatalogFilter = (query: SatelliteCatalogQuery): CatalogFilter => {
-  // Restrict the catalog to objects that have a live propagated state
-  // (i.e. those the propagation scheduler has processed), rather than the
-  // full ingested SATCAT.
-  const clauses: string[] = ["state.calculated_at IS NOT NULL"];
+  // The catalog represents every stored SATCAT object. Live state and TLE
+  // joins are optional enrichments, so records remain discoverable before
+  // propagation has run.
+  const clauses: string[] = [];
   const values: unknown[] = [];
 
   const addClause = (clause: (parameter: string) => string, value: unknown) => {
@@ -100,10 +100,11 @@ const buildCatalogFilter = (query: SatelliteCatalogQuery): CatalogFilter => {
   }
 
   if (query.object_type) {
-    addClause(
-      (parameter) => `satellite.object_type = ${parameter}`,
-      query.object_type,
-    );
+    addClause((parameter) => (
+      query.object_type === "UNK"
+        ? `(satellite.object_type = ${parameter} OR satellite.object_type IS NULL)`
+        : `satellite.object_type = ${parameter}`
+    ), query.object_type);
   }
 
   if (query.status === "active") {
@@ -166,12 +167,6 @@ const catalogOwnersQuery = `
   FROM satellites satellite
   WHERE satellite.owner IS NOT NULL
     AND TRIM(satellite.owner) <> ''
-    AND EXISTS (
-      SELECT 1
-      FROM satelite_orbit_data orbit
-      WHERE orbit.satellite_id = satellite.id
-        AND orbit.position_x_km IS NOT NULL
-    )
   ORDER BY satellite.owner
 `;
 

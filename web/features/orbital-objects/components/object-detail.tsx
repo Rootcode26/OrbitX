@@ -10,7 +10,12 @@ const typeLabels: Record<CatalogObjectType, string> = {
   PAYLOAD: "Payload",
   "ROCKET BODY": "Rocket body",
   DEBRIS: "Debris",
+  UNKNOWN: "Unknown",
 };
+
+function measurement(value: number | null, digits: number, unit: string): string {
+  return value === null ? "—" : `${value.toFixed(digits)} ${unit}`;
+}
 
 function Field({ label, value }: { label: string; value: string }) {
   return (
@@ -47,15 +52,15 @@ export function ObjectDetail({ object, wishlisted, onToggleWishlist }: { object:
         <Field label="Country / owner" value={object.owner} />
         <Field label="Status" value={object.status} />
         <Field label="Launch date" value={object.launchDate} />
-        <Field label="Altitude" value={`${object.altitudeKm.toFixed(1)} km`} />
-        <Field label="Apogee" value={`${object.apogeeKm.toFixed(1)} km`} />
-        <Field label="Perigee" value={`${object.perigeeKm.toFixed(1)} km`} />
-        <Field label="Inclination" value={`${object.inclinationDegrees.toFixed(2)}°`} />
-        <Field label="RAAN" value={`${object.raanDegrees.toFixed(1)}°`} />
-        <Field label="Velocity" value={`${object.velocityKmS.toFixed(3)} km/s`} />
-        <Field label="Orbital period" value={`${object.orbitalPeriodMinutes.toFixed(1)} min`} />
-        <Field label="TLE epoch" value={object.tleEpoch === "Unavailable" ? object.tleEpoch : formatLocalDateTime(object.tleEpoch)} />
-        <Field label="Last updated" value={`${object.lastUpdatedMinutes} min ago`} />
+        <Field label="Altitude" value={measurement(object.altitudeKm, 1, "km")} />
+        <Field label="Apogee" value={measurement(object.apogeeKm, 1, "km")} />
+        <Field label="Perigee" value={measurement(object.perigeeKm, 1, "km")} />
+        <Field label="Inclination" value={measurement(object.inclinationDegrees, 2, "°")} />
+        <Field label="RAAN" value={measurement(object.raanDegrees, 1, "°")} />
+        <Field label="Velocity" value={measurement(object.velocityKmS, 3, "km/s")} />
+        <Field label="Orbital period" value={measurement(object.orbitalPeriodMinutes, 1, "min")} />
+        <Field label="TLE epoch" value={object.tleEpoch === null ? "Unavailable" : formatLocalDateTime(object.tleEpoch)} />
+        <Field label="Last updated" value={object.lastUpdatedMinutes === null ? "Unavailable" : `${object.lastUpdatedMinutes} min ago`} />
       </div>
 
       <div className="grid grid-cols-2 gap-2 p-3.5">

@@ -41,10 +41,11 @@ export async function fetchTleCatalog(): Promise<TleCatalogRecord[]> {
   return parseTleCatalog(response);
 }
 
-function objectType(value: string): OrbitalObject["objectType"] {
+function objectType(value: string | null): OrbitalObject["objectType"] {
   if (value === "R/B") return "ROCKET BODY";
   if (value === "DEB") return "DEBRIS";
-  return "PAYLOAD";
+  if (value === "PAY") return "PAYLOAD";
+  return "UNKNOWN";
 }
 
 // Matches the backend's active operational-status set.
@@ -67,15 +68,15 @@ function toOrbitalObject(item: SatelliteCatalogApiRecord): OrbitalObject {
     // height_km is a live-state value (only for propagated objects); fall back to
     // the mean of the TLE-derived apogee/perigee, matching the backend.
     altitudeKm: item.height_km
-      ?? (item.apogee_km !== null && item.perigee_km !== null ? (item.apogee_km + item.perigee_km) / 2 : 0),
-    apogeeKm: item.apogee_km ?? 0,
-    perigeeKm: item.perigee_km ?? 0,
-    inclinationDegrees: item.inclination_degrees ?? 0,
-    raanDegrees: item.raan_degrees ?? 0,
-    velocityKmS: item.speed_km_s ?? 0,
-    orbitalPeriodMinutes: item.orbital_period_minutes ?? 0,
-    tleEpoch: item.tle_epoch ?? "Unavailable",
-    lastUpdatedMinutes: item.calculated_at ? Math.max(0, Math.round((Date.now() - new Date(item.calculated_at).getTime()) / 60_000)) : 0,
+      ?? (item.apogee_km !== null && item.perigee_km !== null ? (item.apogee_km + item.perigee_km) / 2 : null),
+    apogeeKm: item.apogee_km,
+    perigeeKm: item.perigee_km,
+    inclinationDegrees: item.inclination_degrees,
+    raanDegrees: item.raan_degrees,
+    velocityKmS: item.speed_km_s,
+    orbitalPeriodMinutes: item.orbital_period_minutes,
+    tleEpoch: item.tle_epoch,
+    lastUpdatedMinutes: item.calculated_at ? Math.max(0, Math.round((Date.now() - new Date(item.calculated_at).getTime()) / 60_000)) : null,
     risk: null,
   };
 }
@@ -90,12 +91,19 @@ export async function fetchSatelliteCatalog(query: SatelliteCatalogQuery) {
   const { filters } = query;
   if (filters.search.trim()) params.set("search", filters.search.trim());
   if (filters.objectType !== "ALL") {
-    params.set("object_type", filters.objectType === "ROCKET BODY" ? "R/B" : filters.objectType === "DEBRIS" ? "DEB" : "PAY");
+    params.set(
+      "object_type",
+      filters.objectType === "ROCKET BODY"
+        ? "R/B"
+        : filters.objectType === "DEBRIS"
+          ? "DEB"
+          : filters.objectType === "UNKNOWN" ? "UNK" : "PAY",
+    );
   }
   if (filters.status !== "ANY") params.set("status", filters.status.toLowerCase());
   if (filters.owner !== "ALL") params.set("owner", filters.owner);
-  params.set("minimum_altitude_km", String(filters.minimumAltitude));
-  params.set("maximum_altitude_km", String(filters.maximumAltitude));
+  if (filters.minimumAltitude !== null) params.set("minimum_altitude_km", String(filters.minimumAltitude));
+  if (filters.maximumAltitude !== null) params.set("maximum_altitude_km", String(filters.maximumAltitude));
 
   const response = await requestJson<SatelliteCatalogResponse>(`/satellites/info/catalog?${params}`);
   return {

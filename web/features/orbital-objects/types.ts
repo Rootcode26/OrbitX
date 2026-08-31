@@ -1,4 +1,4 @@
-export type CatalogObjectType = "PAYLOAD" | "ROCKET BODY" | "DEBRIS";
+export type CatalogObjectType = "PAYLOAD" | "ROCKET BODY" | "DEBRIS" | "UNKNOWN";
 export type CatalogObjectStatus = "ACTIVE" | "INACTIVE";
 export type CatalogRiskLevel = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
 export type CatalogTypeFilter = "ALL" | CatalogObjectType;
@@ -15,15 +15,15 @@ export interface OrbitalObject {
   status: CatalogObjectStatus;
   owner: string;
   launchDate: string;
-  altitudeKm: number;
-  apogeeKm: number;
-  perigeeKm: number;
-  inclinationDegrees: number;
-  raanDegrees: number;
-  velocityKmS: number;
-  orbitalPeriodMinutes: number;
-  tleEpoch: string;
-  lastUpdatedMinutes: number;
+  altitudeKm: number | null;
+  apogeeKm: number | null;
+  perigeeKm: number | null;
+  inclinationDegrees: number | null;
+  raanDegrees: number | null;
+  velocityKmS: number | null;
+  orbitalPeriodMinutes: number | null;
+  tleEpoch: string | null;
+  lastUpdatedMinutes: number | null;
   risk: CatalogRiskLevel | null;
 }
 
@@ -33,8 +33,8 @@ export interface CatalogFilters {
   status: CatalogStatusFilter;
   risk: CatalogRiskFilter;
   owner: string;
-  minimumAltitude: number;
-  maximumAltitude: number;
+  minimumAltitude: number | null;
+  maximumAltitude: number | null;
 }
 
 export interface ObjectFiltersProps {
@@ -67,7 +67,7 @@ export interface SatelliteCatalogApiRecord {
   norad_cat_id: number;
   name: string;
   international_designator: string | null;
-  object_type: string;
+  object_type: string | null;
   owner: string | null;
   operational_status: string | null;
   launch_date: string | null;

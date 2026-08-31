@@ -11,7 +11,11 @@ const typeOptions: { label: string; value: CatalogTypeFilter }[] = [
   { label: "Payloads", value: "PAYLOAD" },
   { label: "Rocket bodies", value: "ROCKET BODY" },
   { label: "Debris", value: "DEBRIS" },
+  { label: "Unknown", value: "UNKNOWN" },
 ];
+
+const defaultMinimumAltitude = 0;
+const defaultMaximumAltitude = 50_000;
 
 const statusOptions: { label: string; value: CatalogStatusFilter }[] = [
   { label: "Any", value: "ANY" },
@@ -56,6 +60,10 @@ export function ObjectFilters({
   onSortChange,
   onReset,
 }: ObjectFiltersProps) {
+  const displayedMinimumAltitude = filters.minimumAltitude ?? defaultMinimumAltitude;
+  const displayedMaximumAltitude = filters.maximumAltitude ?? defaultMaximumAltitude;
+  const altitudeFilterActive = filters.minimumAltitude !== null || filters.maximumAltitude !== null;
+
   return (
     <section className="panel-rise border border-[var(--bd)] bg-surface-1 p-3.5">
       <div className="flex gap-3">
@@ -112,26 +120,42 @@ export function ObjectFilters({
           <input
             aria-label="Minimum altitude"
             type="range"
-            min="300"
-            max="1500"
-            step="25"
-            value={filters.minimumAltitude}
-            onChange={(event) => onFiltersChange({ minimumAltitude: Math.min(Number(event.target.value), filters.maximumAltitude) })}
+            min={defaultMinimumAltitude}
+            max={defaultMaximumAltitude}
+            step="100"
+            value={displayedMinimumAltitude}
+            onChange={(event) => onFiltersChange({
+              minimumAltitude: Math.min(Number(event.target.value), displayedMaximumAltitude),
+              maximumAltitude: displayedMaximumAltitude,
+            })}
             className="h-1 min-w-0 flex-1 cursor-pointer accent-[var(--acc)]"
           />
           <input
             aria-label="Maximum altitude"
             type="range"
-            min="300"
-            max="1500"
-            step="25"
-            value={filters.maximumAltitude}
-            onChange={(event) => onFiltersChange({ maximumAltitude: Math.max(Number(event.target.value), filters.minimumAltitude) })}
+            min={defaultMinimumAltitude}
+            max={defaultMaximumAltitude}
+            step="100"
+            value={displayedMaximumAltitude}
+            onChange={(event) => onFiltersChange({
+              minimumAltitude: displayedMinimumAltitude,
+              maximumAltitude: Math.max(Number(event.target.value), displayedMinimumAltitude),
+            })}
             className="h-1 min-w-0 flex-1 cursor-pointer accent-[var(--acc)]"
           />
           <span className="numeric whitespace-nowrap text-[9.5px] text-text-tertiary">
-            {filters.minimumAltitude} – {filters.maximumAltitude} km
+            {altitudeFilterActive
+              ? `${displayedMinimumAltitude.toLocaleString()} – ${displayedMaximumAltitude.toLocaleString()} km`
+              : "All altitudes"}
           </span>
+          {altitudeFilterActive ? (
+            <button
+              onClick={() => onFiltersChange({ minimumAltitude: null, maximumAltitude: null })}
+              className="text-[10px] text-text-secondary hover:text-text-primary"
+            >
+              Clear
+            </button>
+          ) : null}
         </div>
         <button onClick={onReset} className="text-[10.5px] font-medium text-accent hover:text-[var(--acc-hover)]">Reset</button>
       </div>

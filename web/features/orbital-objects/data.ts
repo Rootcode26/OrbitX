@@ -72,6 +72,6 @@ export const defaultCatalogFilters = {
   status: "ANY",
   risk: "ANY",
   owner: "ALL",
-  minimumAltitude: 300,
-  maximumAltitude: 1500,
+  minimumAltitude: null,
+  maximumAltitude: null,
 } as const;
