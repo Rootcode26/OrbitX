@@ -189,24 +189,18 @@ function buildExactModel(
   };
   const midpoint = (minutes: number): Vec3 => scale(add(positionA(minutes), positionB(minutes)), 0.5);
 
-  const missGeometryKm = norm(relativePosition);
-  const windowSeparation = windowSamples.map((sample) => ({ minutes: sample.minutes, value: sample.separationKm }));
-  const windowClosing = windowSamples.map((sample) => ({ minutes: sample.minutes, value: sample.closingRateKmS }));
+  // Real dense track when available, otherwise the rectilinear model anchored
+  // so that separation(0) is exactly the minimum. The coarse ±2h profile is
+  // deliberately not used here: linear interpolation across the sharp minimum
+  // overshoots and would disagree with the reported minimum separation.
+  const analyticSeparation = (minutes: number) => Math.hypot(missKm, relativeVelocityKmS * minutes * 60);
 
   const separationAt = (minutes: number): number => {
     if (hasTrack && minutes >= trackFirst && minutes <= trackLast) {
       const value = interpolateScalar(trackSeparation, minutes);
       if (value !== null) return value;
     }
-    if (windowSamples.length > 1) {
-      const first = windowSamples[0].minutes;
-      const last = windowSamples[windowSamples.length - 1].minutes;
-      if (minutes >= first && minutes <= last) {
-        const value = interpolateScalar(windowSeparation, minutes);
-        if (value !== null) return value;
-      }
-    }
-    return Math.hypot(missGeometryKm, relativeVelocityKmS * minutes * 60);
+    return analyticSeparation(minutes);
   };
 
   const closingRateAt = (minutes: number): number => {
@@ -214,13 +208,7 @@ function buildExactModel(
       const step = 0.05;
       return -(separationAt(minutes + step) - separationAt(minutes - step)) / (2 * step * 60);
     }
-    if (windowSamples.length > 1) {
-      const first = windowSamples[0].minutes;
-      const last = windowSamples[windowSamples.length - 1].minutes;
-      const value = interpolateScalar(windowClosing, minutes);
-      if (value !== null && minutes >= first && minutes <= last) return value;
-    }
-    const separation = Math.hypot(missGeometryKm, relativeVelocityKmS * minutes * 60) || 1;
+    const separation = analyticSeparation(minutes) || 1;
     return -(relativeVelocityKmS * relativeVelocityKmS * minutes * 60) / separation;
   };
 
@@ -280,27 +268,9 @@ function buildReconstructedModel(
   const positionB = (minutes: number): Vec3 => add({ x: 0, y: missKm, z: 0 }, scale(velocityB, speedKmS * minutes * 60));
   const midpoint = (minutes: number): Vec3 => scale(add(positionA(minutes), positionB(minutes)), 0.5);
 
-  const windowSeparation = windowSamples.map((sample) => ({ minutes: sample.minutes, value: sample.separationKm }));
-  const windowClosing = windowSamples.map((sample) => ({ minutes: sample.minutes, value: sample.closingRateKmS }));
   const analyticSeparation = (minutes: number) => Math.hypot(missKm, relativeVelocityKmS * minutes * 60);
-
-  const separationAt = (minutes: number): number => {
-    if (windowSamples.length > 1) {
-      const first = windowSamples[0].minutes;
-      const last = windowSamples[windowSamples.length - 1].minutes;
-      const value = interpolateScalar(windowSeparation, minutes);
-      if (value !== null && minutes >= first && minutes <= last) return value;
-    }
-    return analyticSeparation(minutes);
-  };
-
+  const separationAt = (minutes: number): number => analyticSeparation(minutes);
   const closingRateAt = (minutes: number): number => {
-    if (windowSamples.length > 1) {
-      const first = windowSamples[0].minutes;
-      const last = windowSamples[windowSamples.length - 1].minutes;
-      const value = interpolateScalar(windowClosing, minutes);
-      if (value !== null && minutes >= first && minutes <= last) return value;
-    }
     const separation = analyticSeparation(minutes) || 1;
     return -(relativeVelocityKmS * relativeVelocityKmS * minutes * 60) / separation;
   };

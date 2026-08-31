@@ -45,14 +45,19 @@ export function SeparationProfile({ event }: { event: ConjunctionEvent }) {
     .join(" ");
 
   // Rectilinear model overlay — the physical short-encounter approximation.
+  // Only drawn where it stays on-chart (a clean V anchored at the minimum);
+  // beyond a few minutes the rectilinear model diverges from real motion.
   const model = buildEncounterModel(event);
-  const modelPath = Number.isFinite(tcaTime)
-    ? Array.from({ length: 121 }, (_unused, index) => {
-        const time = timeMin + (index / 120) * timeSpan;
+  const modelPoints = Number.isFinite(tcaTime)
+    ? Array.from({ length: 241 }, (_unused, index) => {
+        const time = timeMin + (index / 240) * timeSpan;
         const minutes = (time - tcaTime) / 60000;
-        return `${index === 0 ? "M" : "L"} ${xForTime(time).toFixed(2)} ${yForSeparation(model.separationAt(minutes)).toFixed(2)}`;
-      }).join(" ")
-    : "";
+        return { time, value: model.separationAt(minutes) };
+      }).filter((point) => point.value <= maximum)
+    : [];
+  const modelPath = modelPoints
+    .map((point, index) => `${index === 0 ? "M" : "L"} ${xForTime(point.time).toFixed(2)} ${yForSeparation(point.value).toFixed(2)}`)
+    .join(" ");
 
   const minimumIndex = separations.indexOf(minimum);
   const minimumX = xForTime(times[Math.max(minimumIndex, 0)] ?? timeMin);
@@ -68,7 +73,7 @@ export function SeparationProfile({ event }: { event: ConjunctionEvent }) {
           <svg viewBox="0 0 640 190" className="block h-[190px] w-full" role="img" aria-label="Separation over the hours around closest approach">
             <line x1={tcaX} y1={PLOT_TOP} x2={tcaX} y2="158" stroke="var(--bd)" />
             <line x1={PLOT_LEFT} y1={yForSeparation(minimum)} x2={PLOT_RIGHT} y2={yForSeparation(minimum)} stroke="var(--bd2)" strokeDasharray="4 5" />
-            {modelPath ? <path d={modelPath} fill="none" stroke="var(--t3)" strokeWidth="1.2" strokeDasharray="3 4" opacity="0.75" /> : null}
+            {modelPoints.length > 1 ? <path d={modelPath} fill="none" stroke="var(--t3)" strokeWidth="1.2" strokeDasharray="3 4" opacity="0.75" /> : null}
             <path d={dataPath} fill="none" stroke={stroke} strokeWidth="2" />
             <circle cx={minimumX} cy={yForSeparation(minimum)} r="4.5" fill={stroke} />
             <text x={PLOT_LEFT} y="182" fill="var(--t3)" fontSize="10" fontFamily="var(--font-inter)">TCA − 2 h</text>
