@@ -25,7 +25,7 @@ export interface DistributionBucket {
 export interface ObjectCategoryMetric {
   label: string;
   count: number;
-  tone: "active" | "inactive" | "rocket" | "debris";
+  tone: "active" | "inactive" | "rocket" | "debris" | "unknown";
 }
 
 export interface AltitudeDensityBucket {
@@ -40,3 +40,9 @@ export interface RiskDistributionMetric {
   percentage: number;
 }
 
+export interface RankedCountMetric {
+  label: string;
+  count: number;
+  percentage: number;
+  tone: "accent" | "active" | "inactive" | "unknown";
+}

@@ -10,16 +10,19 @@ import type {
   AltitudeDensityBucket,
   DistributionBucket,
   ObjectCategoryMetric,
+  RankedCountMetric,
   RiskDistributionMetric,
   ScreeningVolumeBucket,
 } from "../types";
 import { AltitudeDensityChart } from "./altitude-density-chart";
 import { AnalyticsAccordion } from "./analytics-accordion";
+import { AnalyticsSummary } from "./analytics-summary";
 import { ConjunctionTimeline } from "./conjunction-timeline";
 import type { TimelineEvent } from "./conjunction-timeline";
 import { MissDistanceChart } from "./miss-distance-chart";
 import { ObjectClassificationChart } from "./object-classification-chart";
 import { RiskDistributionChart } from "./risk-distribution-chart";
+import { RankedCountChart } from "./ranked-count-chart";
 import { ScreeningVolumeChart } from "./screening-volume-chart";
 
 const categoryMeta = {
@@ -27,6 +30,7 @@ const categoryMeta = {
   inactive_payloads: { label: "Inactive payloads", tone: "inactive" },
   rocket_bodies: { label: "Rocket bodies", tone: "rocket" },
   debris: { label: "Debris", tone: "debris" },
+  unknown: { label: "Unknown", tone: "unknown" },
 } as const;
 
 const missDistanceTones: DistributionBucket["tone"][] = [
@@ -93,6 +97,11 @@ export function AnalyticsPage() {
             });
             const critical = riskDistribution.find((metric) => metric.level === "CRITICAL")?.count ?? 0;
             const high = riskDistribution.find((metric) => metric.level === "HIGH")?.count ?? 0;
+            const orbitCoverage = data.total_objects === 0
+              ? 0
+              : data.objects_with_orbit_data * 100 / data.total_objects;
+            const activeObjects = data.operational_statuses.find((metric) => metric.name === "active")?.count ?? 0;
+            const unknownStatusObjects = data.operational_statuses.find((metric) => metric.name === "unknown")?.count ?? 0;
 
             const missDistanceCounts = new Map(conjunctions.miss_distance_distribution.map((bucket) => [bucket.label, bucket.count]));
             const missDistanceDistribution: DistributionBucket[] = missDistanceLabels.map((label, index) => ({
@@ -128,8 +137,29 @@ export function AnalyticsPage() {
               };
             });
 
+            const ownerMetrics: RankedCountMetric[] = data.top_owners.map((metric) => ({
+              label: metric.name,
+              count: metric.count,
+              percentage: data.total_objects === 0 ? 0 : metric.count * 100 / data.total_objects,
+              tone: "accent",
+            }));
+            const operationalStatusMetrics: RankedCountMetric[] = data.operational_statuses.map((metric) => ({
+              label: `${metric.name.slice(0, 1).toUpperCase()}${metric.name.slice(1)}`,
+              count: metric.count,
+              percentage: data.total_objects === 0 ? 0 : metric.count * 100 / data.total_objects,
+              tone: metric.name === "active" ? "active" : metric.name === "inactive" ? "inactive" : "unknown",
+            }));
+
             return (
               <>
+                <AnalyticsSummary metrics={[
+                  { label: "Catalogued objects", value: data.total_objects.toLocaleString(), detail: "current stored catalog" },
+                  { label: "Objects with orbit data", value: data.objects_with_orbit_data.toLocaleString(), detail: `${orbitCoverage.toFixed(1)}% catalog coverage`, tone: "accent" },
+                  { label: "Operationally active", value: activeObjects.toLocaleString(), detail: "current status classification", tone: "accent" },
+                  { label: "Screened events", value: conjunctions.total_events.toLocaleString(), detail: "current 14-day window" },
+                  { label: "High priority", value: (critical + high).toLocaleString(), detail: "critical and high risk", tone: critical + high > 0 ? "critical" : "default" },
+                  { label: "Upcoming events", value: timelineEvents.length.toLocaleString(), detail: "non-clear future approaches" },
+                ]} />
                 <AnalyticsAccordion
                   title="Conjunction volume · screening window"
                   meta={`${conjunctions.total_events} events in current screening window`}
@@ -139,15 +169,25 @@ export function AnalyticsPage() {
                 <AnalyticsAccordion title="Miss-distance distribution" meta={`${insideOneKm} events inside 1 km`}>
                   <MissDistanceChart buckets={missDistanceDistribution} />
                 </AnalyticsAccordion>
-                <AnalyticsAccordion title="Objects by type and status" meta={`${data.total_objects.toLocaleString()} catalogued objects`}>
-                  <ObjectClassificationChart categories={objectCategories} />
-                </AnalyticsAccordion>
+                <div className="grid items-start gap-3.5 min-[1000px]:grid-cols-2">
+                  <AnalyticsAccordion title="Objects by type" meta={`${data.total_objects.toLocaleString()} catalogued objects`}>
+                    <ObjectClassificationChart categories={objectCategories} />
+                  </AnalyticsAccordion>
+                  <AnalyticsAccordion title="Operational status" meta={`${activeObjects.toLocaleString()} active · ${unknownStatusObjects.toLocaleString()} unknown`}>
+                    <RankedCountChart metrics={operationalStatusMetrics} />
+                  </AnalyticsAccordion>
+                </div>
                 <AnalyticsAccordion title="LEO density by altitude" meta={peakAltitude ? `peak density ${peakAltitude.label} km` : "no orbit data"}>
                   <AltitudeDensityChart buckets={altitudeDensity} />
                 </AnalyticsAccordion>
-                <AnalyticsAccordion title="Risk distribution" meta={`${critical} critical · ${high} high`}>
-                  <RiskDistributionChart metrics={riskDistribution} />
-                </AnalyticsAccordion>
+                <div className="grid items-start gap-3.5 min-[1000px]:grid-cols-2">
+                  <AnalyticsAccordion title="Top catalog owners" meta={`${data.top_owners.length} owners shown`}>
+                    <RankedCountChart metrics={ownerMetrics} />
+                  </AnalyticsAccordion>
+                  <AnalyticsAccordion title="Risk distribution" meta={`${critical} critical · ${high} high`}>
+                    <RiskDistributionChart metrics={riskDistribution} />
+                  </AnalyticsAccordion>
+                </div>
                 <ConjunctionTimeline events={timelineEvents} />
               </>
             );

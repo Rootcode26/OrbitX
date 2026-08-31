@@ -168,6 +168,21 @@ a {
 .stagger-rise > *:nth-child(8) { animation-delay: 0.23s; }
 .stagger-rise > *:nth-child(n + 9) { animation-delay: 0.26s; }
 
+/* Analytics chart entrance motion */
+.chart-grow-x {
+  transform-origin: left center;
+  animation: ssaChartGrowX 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.chart-grow-y {
+  transform-origin: center bottom;
+  animation: ssaChartGrowY 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.chart-reveal {
+  animation: ssaChartReveal 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 /* Subtle lift for interactive rows/cards */
 .hover-lift {
   transition:
@@ -228,5 +243,38 @@ a {
   }
   to {
     transform: translateX(100%);
+  }
+}
+
+@keyframes ssaChartGrowX {
+  from {
+    opacity: 0.35;
+    transform: scaleX(0.02);
+  }
+  to {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
+@keyframes ssaChartGrowY {
+  from {
+    opacity: 0.35;
+    transform: scaleY(0.02);
+  }
+  to {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
+@keyframes ssaChartReveal {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
