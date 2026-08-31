@@ -7,11 +7,15 @@ const tones = {
   unknown: "bg-[#5a5852]",
 };
 
-export function RankedCountChart({ metrics }: { metrics: RankedCountMetric[] }) {
+export function RankedCountChart({ metrics, twoColumns = false }: { metrics: RankedCountMetric[]; twoColumns?: boolean }) {
   return (
-    <div className="divide-y divide-[var(--bd2)] px-4 py-2">
+    <div className={twoColumns ? "grid grid-cols-1 px-4 py-2 min-[1100px]:grid-cols-2" : "divide-y divide-[var(--bd2)] px-4 py-2"}>
       {metrics.map((metric, index) => (
-        <div key={metric.label} className="chart-reveal grid grid-cols-[24px_minmax(0,1fr)_76px] items-center gap-3 py-2.5" style={{ animationDelay: `${index * 35}ms` }}>
+        <div
+          key={metric.label}
+          className={`chart-reveal grid grid-cols-[24px_minmax(0,1fr)_76px] items-center gap-3 py-2.5 ${twoColumns ? "border-b border-[var(--bd2)] min-[1100px]:odd:border-r min-[1100px]:odd:pr-4 min-[1100px]:even:pl-4" : ""}`}
+          style={{ animationDelay: `${index * 35}ms` }}
+        >
           <span className="numeric text-[9px] text-text-tertiary">{String(index + 1).padStart(2, "0")}</span>
           <div className="min-w-0">
             <div className="flex items-center justify-between gap-3">

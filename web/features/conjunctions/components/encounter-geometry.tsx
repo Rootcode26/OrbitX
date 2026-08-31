@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { Panel } from "@/components/ui/panel";
 import { formatDistance } from "../formatters";
@@ -24,22 +24,6 @@ export function EncounterGeometry({ event }: { event: ConjunctionEvent }) {
   const [offsetMinutes, setOffsetMinutes] = useState(0);
   const [viewMode, setViewMode] = useState<ViewMode>("2D");
   const model = useMemo(() => buildEncounterModel(event), [event]);
-
-  // Coalesce rapid slider input to one update per frame so scrubbing the 3D
-  // scene stays smooth.
-  const frameRef = useRef<number | null>(null);
-  const pendingRef = useRef(0);
-  useEffect(() => () => {
-    if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
-  }, []);
-  function scrubTo(value: number) {
-    pendingRef.current = value;
-    if (frameRef.current !== null) return;
-    frameRef.current = requestAnimationFrame(() => {
-      frameRef.current = null;
-      setOffsetMinutes(pendingRef.current);
-    });
-  }
 
   const separationKm = model.separationAt(offsetMinutes);
   const closingRate = offsetMinutes === 0 ? 0 : model.closingRateAt(offsetMinutes);
@@ -94,9 +78,9 @@ export function EncounterGeometry({ event }: { event: ConjunctionEvent }) {
             type="range"
             min={-10}
             max={10}
-            step={0.5}
+            step={0.1}
             value={offsetMinutes}
-            onChange={(changeEvent) => scrubTo(Number(changeEvent.target.value))}
+            onChange={(changeEvent) => setOffsetMinutes(Number(changeEvent.target.value))}
             className="h-1 flex-1 cursor-pointer accent-[var(--acc)]"
           />
           <span className="numeric whitespace-nowrap text-[10.5px] text-text-tertiary">+ 10 min</span>

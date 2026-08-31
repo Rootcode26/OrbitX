@@ -27,7 +27,9 @@ interface SceneProps {
   objectBName: string;
 }
 
-function toVector(point: Vec3, midpoint: Vec3, scale: number) {
+const toVecKm = (point: Vec3) => new THREE.Vector3(point.x, point.y, point.z);
+
+function toScene(point: Vec3, midpoint: Vec3, scale: number) {
   return new THREE.Vector3(
     (point.x - midpoint.x) * scale,
     (point.y - midpoint.y) * scale,
@@ -35,8 +37,8 @@ function toVector(point: Vec3, midpoint: Vec3, scale: number) {
   );
 }
 
-// Velocity vector drawn as a line + cone (cheap, disposed by the reconciler —
-// no per-frame DOM work and no leaked ArrowHelper geometry).
+// Velocity vector as a line + cone, drawn in scene units so it stays a fixed
+// on-screen size regardless of the current zoom.
 function VelocityArrow({ origin, direction, hex }: { origin: THREE.Vector3; direction: Vec3; hex: number }) {
   const dir = new THREE.Vector3(direction.x, direction.y, direction.z);
   if (dir.lengthSq() === 0) return null;
@@ -55,40 +57,49 @@ function VelocityArrow({ origin, direction, hex }: { origin: THREE.Vector3; dire
 }
 
 function EncounterScene({ model, offsetMinutes, risk }: SceneProps) {
-  const scale = VIEW_HALF / fitHalfKm(model, offsetMinutes);
-  const midpoint = model.midpoint(offsetMinutes);
-
-  const markerA = toVector(model.positionA(offsetMinutes), midpoint, scale);
-  const markerB = toVector(model.positionB(offsetMinutes), midpoint, scale);
-  const tcaMid = toVector(model.positionA(0), midpoint, scale).add(toVector(model.positionB(0), midpoint, scale)).multiplyScalar(0.5);
-  const tcaA = toVector(model.positionA(0), midpoint, scale);
-  const tcaB = toVector(model.positionB(0), midpoint, scale);
-
-  const straightReachMinutes = model.speedKmS > 0 ? (fitHalfKm(model, offsetMinutes) * 60) / (model.speedKmS * 60) : 10;
-  const halfMinutes = model.hasTrack ? model.trackHalfMinutes : straightReachMinutes;
+  // ---- static geometry (depends only on the model) --------------------
+  // Point arrays are stable across scrubbing, so the line geometry is never
+  // rebuilt while the slider moves — only the framing group transform changes.
+  const halfMinutes = model.hasTrack ? model.trackHalfMinutes : 60;
   const sampleCount = model.hasTrack ? 40 : 2;
   const trackMinutesList = Array.from(
     { length: sampleCount },
     (_unused, index) => -halfMinutes + (index / (sampleCount - 1)) * 2 * halfMinutes,
   );
-  const trackA = trackMinutesList.map((minutes) => toVector(model.positionA(minutes), midpoint, scale));
-  const trackB = trackMinutesList.map((minutes) => toVector(model.positionB(minutes), midpoint, scale));
+  const trackAkm = trackMinutesList.map((minutes) => toVecKm(model.positionA(minutes)));
+  const trackBkm = trackMinutesList.map((minutes) => toVecKm(model.positionB(minutes)));
+  const tcaAkm = toVecKm(model.positionA(0));
+  const tcaBkm = toVecKm(model.positionB(0));
+  const tcaMidKm = tcaAkm.clone().add(tcaBkm).multiplyScalar(0.5);
 
+  // ---- follow-cam framing (cheap, per offset) -------------------------
+  const scale = VIEW_HALF / fitHalfKm(model, offsetMinutes);
+  const midpoint = model.midpoint(offsetMinutes);
+  const groupPosition: [number, number, number] = [
+    -midpoint.x * scale,
+    -midpoint.y * scale,
+    -midpoint.z * scale,
+  ];
+
+  // ---- moving markers (scene units, aligned with the framed group) ----
+  const markerA = toScene(model.positionA(offsetMinutes), midpoint, scale);
+  const markerB = toScene(model.positionB(offsetMinutes), midpoint, scale);
   const uncertaintyRadius = model.radialUncertaintyKm
     ? Math.min(model.radialUncertaintyKm * scale, VIEW_HALF)
     : null;
 
   return (
     <group rotation={[0.34, -0.5, 0]}>
-      <Line points={trackA} color={OBJECT_A_HEX} lineWidth={1.4} transparent opacity={0.55} />
-      <Line points={trackB} color={OBJECT_B_HEX} lineWidth={1.4} transparent opacity={0.55} />
-
-      {/* Miss vector at the true closest approach. */}
-      <Line points={[tcaA, tcaB]} color={riskHex[risk]} lineWidth={2} />
-      <mesh position={tcaMid}>
-        <ringGeometry args={[0.05, 0.07, 24]} />
-        <meshBasicMaterial color={riskHex[risk]} transparent opacity={0.8} side={THREE.DoubleSide} />
-      </mesh>
+      {/* Static geometry, framed by the follow-cam group transform. */}
+      <group scale={scale} position={groupPosition}>
+        <Line points={trackAkm} color={OBJECT_A_HEX} lineWidth={1.4} transparent opacity={0.5} />
+        <Line points={trackBkm} color={OBJECT_B_HEX} lineWidth={1.4} transparent opacity={0.5} />
+        <Line points={[tcaAkm, tcaBkm]} color={riskHex[risk]} lineWidth={2} />
+        <mesh position={tcaMidKm} scale={1 / scale}>
+          <ringGeometry args={[0.05, 0.07, 24]} />
+          <meshBasicMaterial color={riskHex[risk]} transparent opacity={0.8} side={THREE.DoubleSide} />
+        </mesh>
+      </group>
 
       {/* Object A. */}
       <mesh position={markerA}>

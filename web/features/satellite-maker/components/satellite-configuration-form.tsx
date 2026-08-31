@@ -87,7 +87,7 @@ export function SatelliteConfigurationForm({
             type="datetime-local"
             value={config.epochUtc}
             onChange={(event) => onChange({ epochUtc: event.target.value })}
-            className="numeric mt-2 h-9 w-full border border-[var(--bd)] bg-field px-3 text-[10.5px] text-text-primary outline-none focus:border-[var(--acc-border)]"
+            className="numeric mt-2 h-9 w-full border border-[var(--bd)] bg-field px-3 text-[10.5px] text-text-primary outline-none focus:border-[var(--acc-border)] [color-scheme:dark]"
           />
         </label>
         <label className="block px-3.5 py-3">

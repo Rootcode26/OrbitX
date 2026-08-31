@@ -180,14 +180,12 @@ export function AnalyticsPage() {
                 <AnalyticsAccordion title="LEO density by altitude" meta={peakAltitude ? `peak density ${peakAltitude.label} km` : "no orbit data"}>
                   <AltitudeDensityChart buckets={altitudeDensity} />
                 </AnalyticsAccordion>
-                <div className="grid items-start gap-3.5 min-[1000px]:grid-cols-2">
-                  <AnalyticsAccordion title="Top catalog owners" meta={`${data.top_owners.length} owners shown`}>
-                    <RankedCountChart metrics={ownerMetrics} />
-                  </AnalyticsAccordion>
-                  <AnalyticsAccordion title="Risk distribution" meta={`${critical} critical · ${high} high`}>
-                    <RiskDistributionChart metrics={riskDistribution} />
-                  </AnalyticsAccordion>
-                </div>
+                <AnalyticsAccordion title="Top catalog owners" meta={`${data.top_owners.length} owners shown`}>
+                  <RankedCountChart metrics={ownerMetrics} twoColumns />
+                </AnalyticsAccordion>
+                <AnalyticsAccordion title="Risk distribution" meta={`${critical} critical · ${high} high`}>
+                  <RiskDistributionChart metrics={riskDistribution} />
+                </AnalyticsAccordion>
                 <ConjunctionTimeline events={timelineEvents} />
               </>
             );
