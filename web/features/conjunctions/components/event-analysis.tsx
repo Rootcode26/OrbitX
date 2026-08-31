@@ -32,6 +32,7 @@ export function EventAnalysis({ event }: { event: ConjunctionEvent }) {
           <div className={`h-full ${tone.bar}`} style={{ width: `${event.riskScore * 10}%` }} />
         </div>
       </div>
+      <AnalysisRow label="Time of closest approach" value={event.tcaLabel} />
       <AnalysisRow label="Minimum separation" value={formatDistance(event.minimumSeparationKm)} valueClass={tone.text} />
       <AnalysisRow label="Relative velocity" value={event.relativeVelocityKmS === null ? "—" : `${event.relativeVelocityKmS.toFixed(1)} km/s`} />
       <AnalysisRow label="Encounter angle" value={event.encounterAngleDegrees === null ? "—" : `${event.encounterAngleDegrees.toFixed(0)}°`} />

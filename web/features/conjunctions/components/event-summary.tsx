@@ -60,7 +60,7 @@ export function EventSummary({
           </div>
         </div>
         <div className="text-right">
-          <div className="text-[10px] font-medium text-text-tertiary">TCA</div>
+          <div className="text-[10px] font-medium text-text-tertiary">Time of closest approach</div>
           <div className="numeric mt-1 text-[18px] font-medium">{event.tcaLabel}</div>
           <div className="numeric mt-1 text-[9.5px] text-text-tertiary">{formatTcaCountdown(event.tcaIso, now)}</div>
         </div>

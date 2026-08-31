@@ -11,7 +11,7 @@ function SourceMetric({ label, value }: { label: string; value: string }) {
 
 export function DataSourceCard({ source }: { source: OperationsDataSource }) {
   return (
-    <article className="panel-rise border border-[var(--bd)] bg-surface-1">
+    <article className="panel-rise hover-lift border border-[var(--bd)] bg-surface-1 hover:border-[var(--acc-border)]">
       <header className="flex items-center justify-between gap-4 border-b border-[var(--bd)] bg-surface-2 px-4 py-3.5">
         <div className="min-w-0">
           <h2 className="text-[13px] font-semibold tracking-[-0.006em] text-text-primary">{source.name}</h2>

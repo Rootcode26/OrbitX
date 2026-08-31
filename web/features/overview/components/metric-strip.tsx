@@ -14,7 +14,7 @@ const tones = {
 
 function MetricStripSkeleton() {
   return (
-    <section className="panel-rise grid grid-cols-2 border border-[var(--bd)] bg-surface-1 min-[1000px]:grid-cols-3 min-[1240px]:grid-cols-6">
+    <section className="panel-rise stagger-rise grid grid-cols-2 border border-[var(--bd)] bg-surface-1 min-[1000px]:grid-cols-3 min-[1240px]:grid-cols-6">
       {Array.from({ length: 6 }).map((_, index) => (
         <article key={index} className="min-w-0 space-y-3 border-r border-b border-[var(--bd2)] px-4 py-3.5 last:border-r-0 min-[1240px]:border-b-0">
           <Skeleton className="h-2.5 w-24" />
@@ -52,7 +52,7 @@ export function MetricStrip() {
   ];
 
   return (
-    <section className="panel-rise grid grid-cols-2 border border-[var(--bd)] bg-surface-1 min-[1000px]:grid-cols-3 min-[1240px]:grid-cols-6">
+    <section className="panel-rise stagger-rise grid grid-cols-2 border border-[var(--bd)] bg-surface-1 min-[1000px]:grid-cols-3 min-[1240px]:grid-cols-6">
       {metrics.map((metric) => (
         <article key={metric.label} className="min-w-0 border-r border-b border-[var(--bd2)] px-4 py-3.5 last:border-r-0 min-[1240px]:border-b-0">
           <h2 className="text-[10.5px] font-medium text-text-tertiary">{metric.label}</h2>

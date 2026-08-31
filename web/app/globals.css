@@ -134,6 +134,63 @@ a {
   animation: ssaPulse 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
+/* Skeleton shimmer — a faint sheen sweeping over the loading base */
+.skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(228, 222, 208, 0.055) 50%,
+    transparent 100%
+  );
+  animation: ssaSweep 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* Staggered entrance for grids/lists — children cascade in on mount */
+.stagger-rise > * {
+  animation: ssaRise 0.28s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+.stagger-rise > *:nth-child(1) { animation-delay: 0.02s; }
+.stagger-rise > *:nth-child(2) { animation-delay: 0.05s; }
+.stagger-rise > *:nth-child(3) { animation-delay: 0.08s; }
+.stagger-rise > *:nth-child(4) { animation-delay: 0.11s; }
+.stagger-rise > *:nth-child(5) { animation-delay: 0.14s; }
+.stagger-rise > *:nth-child(6) { animation-delay: 0.17s; }
+.stagger-rise > *:nth-child(7) { animation-delay: 0.20s; }
+.stagger-rise > *:nth-child(8) { animation-delay: 0.23s; }
+.stagger-rise > *:nth-child(n + 9) { animation-delay: 0.26s; }
+
+/* Subtle lift for interactive rows/cards */
+.hover-lift {
+  transition:
+    transform 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+    background-color 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.hover-lift:hover {
+  transform: translateY(-1px);
+}
+
+/* Respect users who prefer reduced motion — neutralise all CSS motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 .screened-events-panel {
   container-type: inline-size;
 }
