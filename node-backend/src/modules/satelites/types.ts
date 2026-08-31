@@ -321,6 +321,29 @@ export interface SatelliteStateCollection {
   limit: number;
 }
 
+export interface NearbySatelliteStateDatabaseRow extends SatelliteStateDatabaseRow {
+  separation_km: number;
+  relative_velocity_km_s: number;
+  total_count: string;
+}
+
+export interface NearbySatelliteState extends SatelliteCurrentState {
+  separation_km: number;
+  relative_velocity_km_s: number;
+}
+
+export interface NearbySatellitePage {
+  primary_satellite: SatelliteCurrentState;
+  radius_km: number;
+  satellites: NearbySatelliteState[];
+  page: {
+    number: number;
+    size: number;
+    total_items: number;
+    total_pages: number;
+  };
+}
+
 export interface SatelliteSummaryDatabaseRow {
   norad_cat_id: number;
   satellite_name: string;

@@ -27,14 +27,16 @@ export interface LiveSatelliteState {
 export interface CurrentSatelliteStateApiRecord {
   norad_cat_id: number;
   name: string;
-  object_type: string;
+  object_type: string | null;
   owner: string | null;
   operational_status: string | null;
   calculated_at: string;
+  tle_epoch: string;
   reference_frame: string;
   position_km: { x: number; y: number; z: number };
   velocity_km_s: { x: number; y: number; z: number };
   height_km: number;
+  speed_km_s: number;
   latitude_degrees: number;
   longitude_degrees: number;
   inclination_degrees: number;

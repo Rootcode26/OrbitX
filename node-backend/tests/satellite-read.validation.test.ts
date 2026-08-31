@@ -1,10 +1,19 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  nearbySatelliteQuerySchema,
   satelliteHistoryQuerySchema,
   satelliteNoradParamsSchema,
   satelliteStateListQuerySchema,
 } from "../src/modules/satelites/validation/satellite-read.validation.ts";
+
+test("nearby satellite queries apply pagination defaults", () => {
+  assert.deepEqual(nearbySatelliteQuerySchema.parse({}), { page: 1, page_size: 10 });
+});
+
+test("nearby satellite queries reject oversized pages", () => {
+  assert.equal(nearbySatelliteQuerySchema.safeParse({ page_size: "101" }).success, false);
+});
 
 test("state query defaults to the supported propagation batch size", () => {
   const result = satelliteStateListQuerySchema.parse({});

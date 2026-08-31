@@ -4,6 +4,7 @@ import { getSatelitesTleData } from "../controllers/satelites-info.controllers";
 import { getConjunctionData } from "../controllers/satelites-conjuction.controllers";
 import {
   getCurrentSatelliteState,
+  listNearbySatelliteStates,
   listCurrentSatelliteStates,
 } from "../controllers/satellite-state.controllers.ts";
 import { getSatelliteHistoryRecords } from "../controllers/satellite-history.controllers.ts";
@@ -63,6 +64,7 @@ router.get("/alerts", listAlerts);
 router.get("/wishlist", requireClerkAuth, listUserWishlist);
 router.get("/states/current", listCurrentSatelliteStates);
 router.get("/states/:noradCatId/current", getCurrentSatelliteState);
+router.get("/finder/:noradCatId/nearby", listNearbySatelliteStates);
 router.get("/maker/commissioned", requireClerkAuth, listCommissionedSatelliteObjects);
 router.get("/:noradCatId/history", getSatelliteHistoryRecords);
 router.post("/maker/preview", requireClerkAuth, createSatellitePreview);

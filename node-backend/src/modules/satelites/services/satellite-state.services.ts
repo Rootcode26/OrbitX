@@ -1,8 +1,10 @@
 import {
+  findNearbySatelliteStates,
   findLatestSatelliteState,
   findLatestSatelliteStates,
 } from "../repositories/satellite-state.repository.ts";
 import {
+  NearbySatellitePage,
   SatelliteCurrentState,
   SatelliteStateCollection,
   SatelliteStateDatabaseRow,
@@ -59,4 +61,37 @@ export const getLatestSatelliteState = async (noradCatId: number): Promise<Satel
   }
 
   return toSatelliteCurrentState(row);
+};
+
+const nearbyRadiusKm = 1_000;
+
+export const getNearbySatelliteStates = async (
+  primaryNoradCatId: number,
+  page: number,
+  pageSize: number,
+): Promise<NearbySatellitePage> => {
+  const [primaryRow, nearby] = await Promise.all([
+    findLatestSatelliteState(primaryNoradCatId),
+    findNearbySatelliteStates(primaryNoradCatId, nearbyRadiusKm, page, pageSize),
+  ]);
+
+  if (!primaryRow) {
+    throw new SatelliteStateNotFoundError(primaryNoradCatId);
+  }
+
+  return {
+    primary_satellite: toSatelliteCurrentState(primaryRow),
+    radius_km: nearbyRadiusKm,
+    satellites: nearby.rows.map((row) => ({
+      ...toSatelliteCurrentState(row),
+      separation_km: row.separation_km,
+      relative_velocity_km_s: row.relative_velocity_km_s,
+    })),
+    page: {
+      number: page,
+      size: pageSize,
+      total_items: nearby.total,
+      total_pages: Math.ceil(nearby.total / pageSize),
+    },
+  };
 };

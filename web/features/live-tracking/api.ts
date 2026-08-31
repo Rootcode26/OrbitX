@@ -13,7 +13,7 @@ function isActivePayload(status: string | null) {
   return status !== null && activeOperationalStatuses.has(status.toUpperCase());
 }
 
-function objectType(value: string, status: string | null): LiveSatelliteState["objectType"] {
+function objectType(value: string | null, status: string | null): LiveSatelliteState["objectType"] {
   if (value === "DEB") return "Debris";
   if (value === "R/B") return "Rocket body";
   return isActivePayload(status) ? "Payload" : "Inactive payload";
