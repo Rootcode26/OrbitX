@@ -97,6 +97,18 @@ class SeparationSample(BaseModel):
 
 
 # =========================================================
+# Encounter track sample
+# =========================================================
+
+class EncounterTrackSample(BaseModel):
+    offset_seconds: float
+    timestamp: datetime
+    position_a_km: Vector3D
+    position_b_km: Vector3D
+    separation_km: float
+
+
+# =========================================================
 # Single conjunction response
 # =========================================================
 
@@ -134,6 +146,8 @@ class ConjunctionResponse(BaseModel):
     risk_score: float
 
     separation_samples: list[SeparationSample]
+
+    encounter_track: list[EncounterTrackSample] = []
 
 
 # =========================================================

@@ -15,7 +15,10 @@ import type {
   ConjunctionObject,
   ConjunctionRiskFilter,
   ConjunctionRiskLevel,
+  EncounterState,
+  EncounterTrackSample,
   SeparationSample,
+  Vec3Data,
 } from "../types";
 import { EncounterGeometry } from "./encounter-geometry";
 import { EventAnalysis } from "./event-analysis";
@@ -43,6 +46,44 @@ function toConjunctionObject(object: ConjunctionEventRecord["object_a"]): Conjun
 
 function normaliseRiskScore(score: number | null): number {
   return Math.min(10, Math.max(0, (score ?? 0) / 10));
+}
+
+function readVec3(value: unknown): Vec3Data | null {
+  if (!value || typeof value !== "object") return null;
+  const record = value as Record<string, unknown>;
+  const { x, y, z } = record;
+  if (typeof x === "number" && typeof y === "number" && typeof z === "number") return { x, y, z };
+  return null;
+}
+
+function toTcaState(raw: Record<string, unknown>): EncounterState | null {
+  const objectA = raw.satellite_a as Record<string, unknown> | undefined;
+  const objectB = raw.satellite_b as Record<string, unknown> | undefined;
+  const positionA = readVec3(objectA?.position_at_tca_km);
+  const velocityA = readVec3(objectA?.velocity_at_tca_km_s);
+  const positionB = readVec3(objectB?.position_at_tca_km);
+  const velocityB = readVec3(objectB?.velocity_at_tca_km_s);
+  if (!positionA || !velocityA || !positionB || !velocityB) return null;
+  return {
+    a: { positionKm: positionA, velocityKmS: velocityA },
+    b: { positionKm: positionB, velocityKmS: velocityB },
+  };
+}
+
+function toEncounterTrack(raw: Record<string, unknown>): EncounterTrackSample[] | null {
+  const track = raw.encounter_track;
+  if (!Array.isArray(track)) return null;
+  const samples = track.flatMap((entry) => {
+    if (!entry || typeof entry !== "object") return [];
+    const value = entry as Record<string, unknown>;
+    const positionAKm = readVec3(value.position_a_km);
+    const positionBKm = readVec3(value.position_b_km);
+    const offsetSeconds = typeof value.offset_seconds === "number" ? value.offset_seconds : null;
+    const separationKm = typeof value.separation_km === "number" ? value.separation_km : null;
+    if (!positionAKm || !positionBKm || offsetSeconds === null || separationKm === null) return [];
+    return [{ offsetSeconds, positionAKm, positionBKm, separationKm }];
+  });
+  return samples.length > 1 ? samples : null;
 }
 
 function toSeparationSamples(profile: unknown[] | null): SeparationSample[] {
@@ -93,7 +134,10 @@ function toConjunctionEvent(record: ConjunctionEventRecord): ConjunctionEvent {
     riskScore: normaliseRiskScore(record.risk_score),
     screeningWindowHours: Math.round(record.screening_duration_minutes / 60),
     profileSpanKm: Math.round(maximumSeparation),
+    radialUncertaintyM: record.radial_uncertainty_m,
     separationProfile,
+    tcaState: toTcaState(record.raw_result),
+    encounterTrack: toEncounterTrack(record.raw_result),
   };
 }
 

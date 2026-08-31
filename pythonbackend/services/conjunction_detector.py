@@ -430,6 +430,83 @@ class ConjunctionDetector:
         return samples
 
     # =========================================================
+    # Encounter track
+    # =========================================================
+
+    def generate_encounter_track(
+        self,
+        tle_a: tuple[str, str],
+        tle_b: tuple[str, str],
+        closest_time: datetime,
+        half_window_minutes: int = 10,
+        step_seconds: int = 20,
+    ) -> list[dict]:
+        """
+        Dense, TCA-centered track of both satellites' absolute positions and
+        their separation, for high-fidelity encounter visualisation.
+
+        Returns one sample per step across
+        [closest_time - half_window, closest_time + half_window], each with the
+        absolute TEME position of both objects and their separation.
+        """
+
+        if half_window_minutes <= 0:
+            raise ValueError(
+                "half_window_minutes must be greater than 0"
+            )
+
+        if step_seconds <= 0:
+            raise ValueError(
+                "step_seconds must be greater than 0"
+            )
+
+        total_steps = int(
+            (half_window_minutes * 60) / step_seconds
+        )
+
+        samples = []
+
+        for index in range(-total_steps, total_steps + 1):
+
+            offset = index * step_seconds
+
+            timestamp = (
+                closest_time
+                + timedelta(seconds=offset)
+            )
+
+            result_a, result_b = self.get_states_at_time(
+                tle_a,
+                tle_b,
+                timestamp,
+            )
+
+            separation = self.calculate_distance(
+                result_a.position_km,
+                result_b.position_km,
+            )
+
+            samples.append(
+                {
+                    "offset_seconds": offset,
+                    "timestamp": timestamp,
+                    "position_a_km": {
+                        "x": round(result_a.position_km[0], 6),
+                        "y": round(result_a.position_km[1], 6),
+                        "z": round(result_a.position_km[2], 6),
+                    },
+                    "position_b_km": {
+                        "x": round(result_b.position_km[0], 6),
+                        "y": round(result_b.position_km[1], 6),
+                        "z": round(result_b.position_km[2], 6),
+                    },
+                    "separation_km": round(separation, 3),
+                }
+            )
+
+        return samples
+
+    # =========================================================
     # Closest approach
     # =========================================================
 

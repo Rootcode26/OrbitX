@@ -29,13 +29,39 @@ export interface ConjunctionEvent {
   riskScore: number;
   screeningWindowHours: number;
   profileSpanKm: number;
+  radialUncertaintyM: number | null;
   separationProfile: SeparationSample[];
+  tcaState: EncounterState | null;
+  encounterTrack: EncounterTrackSample[] | null;
 }
 
 export interface SeparationSample {
   timestamp: string;
   separationKm: number;
   closingRateKmS: number | null;
+}
+
+export interface Vec3Data {
+  x: number;
+  y: number;
+  z: number;
+}
+
+export interface EncounterStateObject {
+  positionKm: Vec3Data;
+  velocityKmS: Vec3Data;
+}
+
+export interface EncounterState {
+  a: EncounterStateObject;
+  b: EncounterStateObject;
+}
+
+export interface EncounterTrackSample {
+  offsetSeconds: number;
+  positionAKm: Vec3Data;
+  positionBKm: Vec3Data;
+  separationKm: number;
 }
 
 export interface ScreenedEventListProps {

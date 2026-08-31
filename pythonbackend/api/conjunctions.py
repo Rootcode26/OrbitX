@@ -181,6 +181,16 @@ def check_conjunction(
         )
 
         # -----------------------------------------------------
+        # 11b. Dense TCA-centered encounter track
+        # -----------------------------------------------------
+
+        encounter_track = detector.generate_encounter_track(
+            tle_a=tle_a,
+            tle_b=tle_b,
+            closest_time=closest_time,
+        )
+
+        # -----------------------------------------------------
         # 12. Return final response
         # -----------------------------------------------------
 
@@ -303,6 +313,8 @@ def check_conjunction(
             ),
 
             separation_samples=separation_samples,
+
+            encounter_track=encounter_track,
         )
 
     except ValueError as exc:
