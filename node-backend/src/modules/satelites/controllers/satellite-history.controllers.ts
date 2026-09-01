@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from "express";
+import type { AuthenticatedRequest } from "../../../auth/types.ts";
 import { getSatelliteHistory } from "../services/satellite-history.services.ts";
 import { SatelliteNotFoundError } from "../services/satellite-read.errors.ts";
 import {
@@ -6,7 +7,7 @@ import {
   satelliteNoradParamsSchema,
 } from "../validation/satellite-read.validation.ts";
 
-export const getSatelliteHistoryRecords = async (req: Request, res: Response, next: NextFunction) => {
+export const getSatelliteHistoryRecords = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   const params = satelliteNoradParamsSchema.safeParse(req.params);
   const query = satelliteHistoryQuerySchema.safeParse(req.query);
 
@@ -25,6 +26,7 @@ export const getSatelliteHistoryRecords = async (req: Request, res: Response, ne
       params.data.noradCatId,
       query.data.limit,
       query.data.before,
+      req.authUserId ?? null,
     );
 
     return res.status(200).json({ data: history });

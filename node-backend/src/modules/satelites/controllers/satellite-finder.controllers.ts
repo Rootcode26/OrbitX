@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from "express";
+import type { AuthenticatedRequest } from "../../../auth/types.ts";
 import {
   compareSatelliteFinderObjects,
   screenSatelliteConjunctionCandidates,
@@ -32,7 +33,7 @@ export const compareSatelliteFinderSelection = async (req: Request, res: Respons
   }
 };
 
-export const screenSatelliteFinderCandidates = async (req: Request, res: Response, next: NextFunction) => {
+export const screenSatelliteFinderCandidates = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   const request = satelliteConjunctionScreenRequestSchema.safeParse(req.body);
 
   if (!request.success) {
@@ -43,7 +44,7 @@ export const screenSatelliteFinderCandidates = async (req: Request, res: Respons
   }
 
   try {
-    const result = await screenSatelliteConjunctionCandidates(request.data);
+    const result = await screenSatelliteConjunctionCandidates(request.data, req.authUserId ?? null);
     return res.status(200).json({ data: result });
   } catch (error) {
     if (error instanceof SatelliteTleNotFoundError) {

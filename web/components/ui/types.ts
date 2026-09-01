@@ -3,6 +3,9 @@ import type { ReactNode } from "react";
 export type IconName =
   | "analytics"
   | "bell"
+  | "calendar"
+  | "chevron-left"
+  | "chevron-right"
   | "conjunction"
   | "cube"
   | "database"

@@ -4,6 +4,9 @@ import type { IconProps } from "./types";
 const paths: Record<IconProps["name"], ReactNode> = {
   analytics: <path d="M4 19V9m5 10V5m5 14v-7m5 7V3M2 21h20" />,
   bell: <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" />,
+  calendar: <><rect x="3" y="4.5" width="18" height="16.5" rx="1" /><path d="M3 9.5h18M8 2.5v4M16 2.5v4" /></>,
+  "chevron-left": <path d="m14 6-6 6 6 6" />,
+  "chevron-right": <path d="m10 6 6 6-6 6" />,
   conjunction: <path d="M4 18c4-1 6-4 8-13m8 13c-4-1-6-4-8-13M7 19h10M12 5V2" />,
   cube: <path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Zm0 9 8-4.5M12 12 4 7.5M12 12v9" />,
   database: <path d="M4 6c0-2 3.6-3 8-3s8 1 8 3-3.6 3-8 3-8-1-8-3Zm0 0v6c0 2 3.6 3 8 3s8-1 8-3V6M4 12v6c0 2 3.6 3 8 3s8-1 8-3v-6" />,

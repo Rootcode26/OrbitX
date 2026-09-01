@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { formatLocalDateTime } from "@/lib/format-date-time";
 import { useConjunctionScreen } from "@/features/conjunctions/hooks/use-conjunction-screen";
+import type { ConjunctionEventRiskLevel, ConjunctionScreenResult } from "@/features/conjunctions/types";
 import type { CatalogObjectType, OrbitalObject } from "../types";
 import { CatalogRiskBadge } from "./catalog-risk-badge";
 
@@ -87,11 +88,85 @@ export function ObjectDetail({ object, wishlisted, onToggleWishlist }: { object:
           {conjunctionScreen.isPending ? "Screening 15 candidates…" : "Check conjunctions"}
         </button>
         {conjunctionScreen.isSuccess ? (
-          <p className="col-span-2 text-[10px] text-nominal">{conjunctionScreen.data.completed} of {conjunctionScreen.data.requested} candidates screened successfully.</p>
+          <ConjunctionScreenSummary result={conjunctionScreen.data} />
         ) : conjunctionScreen.isError ? (
           <p className="col-span-2 text-[10px] text-critical">The conjunction screening request failed.</p>
         ) : null}
       </div>
     </aside>
+  );
+}
+
+const riskOrder: ConjunctionEventRiskLevel[] = ["CRITICAL", "HIGH", "MEDIUM", "LOW", "CLEAR"];
+const riskRank: Record<ConjunctionEventRiskLevel, number> = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3, CLEAR: 4 };
+const riskChipStyles: Record<ConjunctionEventRiskLevel, string> = {
+  CRITICAL: "border-[var(--critical-border)] bg-[var(--critical-fill)] text-critical",
+  HIGH: "border-[var(--high-border)] bg-[var(--high-fill)] text-high",
+  MEDIUM: "border-[var(--medium-border)] bg-[var(--medium-fill)] text-medium",
+  LOW: "border-[var(--low-border)] bg-[var(--low-fill)] text-low",
+  CLEAR: "border-[var(--bd)] bg-surface-2 text-text-tertiary",
+};
+const riskLabels: Record<ConjunctionEventRiskLevel, string> = {
+  CRITICAL: "CRIT",
+  HIGH: "HIGH",
+  MEDIUM: "MED",
+  LOW: "LOW",
+  CLEAR: "CLEAR",
+};
+
+function RiskChip({ level }: { level: ConjunctionEventRiskLevel }) {
+  return (
+    <span className={`numeric inline-flex min-w-[44px] items-center justify-center border px-1.5 py-1 text-[8.5px] font-semibold tracking-[0.06em] ${riskChipStyles[level]}`}>
+      {riskLabels[level]}
+    </span>
+  );
+}
+
+function ConjunctionScreenSummary({ result }: { result: ConjunctionScreenResult }) {
+  const counts = result.comparisons.reduce<Record<ConjunctionEventRiskLevel, number>>(
+    (tally, comparison) => {
+      tally[comparison.risk.risk_level] += 1;
+      return tally;
+    },
+    { CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0, CLEAR: 0 },
+  );
+  const flagged = result.comparisons
+    .filter((comparison) => comparison.risk.risk_level !== "CLEAR")
+    .sort((a, b) =>
+      riskRank[a.risk.risk_level] - riskRank[b.risk.risk_level]
+      || (a.risk.minimum_separation_km ?? Infinity) - (b.risk.minimum_separation_km ?? Infinity));
+
+  return (
+    <div className="col-span-2 space-y-2">
+      <p className="text-[10px] text-nominal">
+        {result.completed} of {result.requested} candidates screened
+        {result.failed > 0 ? `, ${result.failed} failed` : ""}.
+      </p>
+      <div className="flex flex-wrap gap-1.5">
+        {riskOrder.filter((level) => counts[level] > 0).map((level) => (
+          <span key={level} className={`numeric inline-flex items-center gap-1 border px-1.5 py-1 text-[8.5px] font-semibold tracking-[0.06em] ${riskChipStyles[level]}`}>
+            {counts[level]} {riskLabels[level]}
+          </span>
+        ))}
+      </div>
+      {flagged.length > 0 ? (
+        <ul className="space-y-1">
+          {flagged.map((comparison) => (
+            <li key={comparison.satellite.norad_cat_id} className="flex items-center justify-between gap-2 border border-[var(--bd2)] px-2 py-1.5">
+              <div className="min-w-0">
+                <div className="truncate text-[11px] font-medium text-text-primary">{comparison.satellite.name}</div>
+                <div className="numeric text-[9px] text-text-tertiary">
+                  NORAD {comparison.satellite.norad_cat_id}
+                  {comparison.risk.minimum_separation_km !== null ? ` · ${comparison.risk.minimum_separation_km.toFixed(1)} km` : ""}
+                </div>
+              </div>
+              <RiskChip level={comparison.risk.risk_level} />
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-[9.5px] text-text-tertiary">No close approaches — all screened candidates are clear.</p>
+      )}
+    </div>
   );
 }

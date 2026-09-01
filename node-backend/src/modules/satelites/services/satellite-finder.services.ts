@@ -15,7 +15,7 @@ import {
   requestConjunctionCheck,
   SatelliteTleNotFoundError,
 } from "./satelites-conjuction.services.ts";
-import { recordConjunctionResult } from "./conjunction-event.services.ts";
+import { normalizeConjunctionResult, recordConjunctionResult } from "./conjunction-event.services.ts";
 
 const toFinderObject = (satellite: LatestSatelliteTle): SatelliteFinderObject => ({
   norad_cat_id: satellite.norad_cat_id,
@@ -58,19 +58,30 @@ export const compareSatelliteFinderObjects = async (request: SatelliteFinderComp
 
     try {
       const result = await requestConjunctionCheck(comparisonData);
-      await recordConjunctionResult({
+      const checkRequest = {
         satellite_a_norad_id: primarySatellite.norad_cat_id,
         satellite_b_norad_id: satellite.norad_cat_id,
         start_time: startTime,
         duration_minutes: comparisonData.duration_minutes,
         step_seconds: comparisonData.step_seconds,
         include_separation_profile: request.include_separation_profile ?? false,
-      }, result);
+      };
+      await recordConjunctionResult(checkRequest, result);
+      // Surface the same normalized risk that gets persisted, so the check
+      // response carries a typed verdict instead of an opaque raw payload.
+      const normalized = normalizeConjunctionResult(checkRequest, result);
 
       return {
         success: true as const,
         satellite: toFinderObject(satellite),
         result,
+        risk: {
+          risk_level: normalized.risk_level,
+          risk_score: normalized.risk_score,
+          minimum_separation_km: normalized.minimum_separation_km,
+          relative_velocity_km_s: normalized.relative_velocity_km_s,
+          tca: normalized.tca,
+        },
       };
     } catch (error) {
       return {
@@ -83,7 +94,7 @@ export const compareSatelliteFinderObjects = async (request: SatelliteFinderComp
 
   const comparisons = outcomes
     .filter((outcome) => outcome.success)
-    .map((outcome) => ({ satellite: outcome.satellite, result: outcome.result }));
+    .map((outcome) => ({ satellite: outcome.satellite, result: outcome.result, risk: outcome.risk }));
   const errors = outcomes
     .filter((outcome) => !outcome.success)
     .map((outcome) => ({ satellite: outcome.satellite, message: outcome.message }));
@@ -98,10 +109,10 @@ export const compareSatelliteFinderObjects = async (request: SatelliteFinderComp
   };
 };
 
-export const screenSatelliteConjunctionCandidates = async (request: SatelliteConjunctionScreenRequest): Promise<SatelliteFinderComparisonResponse> => {
+export const screenSatelliteConjunctionCandidates = async (request: SatelliteConjunctionScreenRequest, clerkUserId: string | null): Promise<SatelliteFinderComparisonResponse> => {
   const [primaryRecords, candidates] = await Promise.all([
     getLatestSatelliteTlesByNoradIds([request.primary_norad_id]),
-    getConjunctionCandidateTles(request.primary_norad_id, request.candidate_limit),
+    getConjunctionCandidateTles(request.primary_norad_id, request.candidate_limit, clerkUserId),
   ]);
 
   if (primaryRecords.length === 0) {

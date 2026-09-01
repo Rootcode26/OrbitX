@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from "express";
+import type { AuthenticatedRequest } from "../../../auth/types.ts";
 import {
   getNearbySatelliteStates,
   getLatestSatelliteState,
@@ -11,7 +12,7 @@ import {
   satelliteStateListQuerySchema,
 } from "../validation/satellite-read.validation.ts";
 
-export const listNearbySatelliteStates = async (req: Request, res: Response, next: NextFunction) => {
+export const listNearbySatelliteStates = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   const params = satelliteNoradParamsSchema.safeParse(req.params);
   const query = nearbySatelliteQuerySchema.safeParse(req.query);
 
@@ -27,6 +28,7 @@ export const listNearbySatelliteStates = async (req: Request, res: Response, nex
       params.data.noradCatId,
       query.data.page,
       query.data.page_size,
+      req.authUserId ?? null,
     );
     return res.status(200).json({ data: result });
   } catch (error) {
@@ -40,7 +42,7 @@ export const listNearbySatelliteStates = async (req: Request, res: Response, nex
   }
 };
 
-export const listCurrentSatelliteStates = async (req: Request, res: Response, next: NextFunction) => {
+export const listCurrentSatelliteStates = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   const query = satelliteStateListQuerySchema.safeParse(req.query);
 
   if (!query.success) {
@@ -51,14 +53,14 @@ export const listCurrentSatelliteStates = async (req: Request, res: Response, ne
   }
 
   try {
-    const states = await getLatestSatelliteStates(query.data.limit);
+    const states = await getLatestSatelliteStates(query.data.limit, req.authUserId ?? null);
     return res.status(200).json({ data: states });
   } catch (error) {
     return next(error);
   }
 };
 
-export const getCurrentSatelliteState = async (req: Request, res: Response, next: NextFunction) => {
+export const getCurrentSatelliteState = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   const params = satelliteNoradParamsSchema.safeParse(req.params);
 
   if (!params.success) {
@@ -69,7 +71,7 @@ export const getCurrentSatelliteState = async (req: Request, res: Response, next
   }
 
   try {
-    const state = await getLatestSatelliteState(params.data.noradCatId);
+    const state = await getLatestSatelliteState(params.data.noradCatId, req.authUserId ?? null);
     return res.status(200).json({ data: state });
   } catch (error) {
     if (error instanceof SatelliteStateNotFoundError) {

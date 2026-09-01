@@ -46,9 +46,18 @@ export interface SatelliteFinderObject {
   name: string;
 }
 
+export interface SatelliteFinderComparisonRisk {
+  risk_level: ConjunctionRiskLevel;
+  risk_score: number | null;
+  minimum_separation_km: number | null;
+  relative_velocity_km_s: number | null;
+  tca: string | null;
+}
+
 export interface SatelliteFinderComparisonResult {
   satellite: SatelliteFinderObject;
   result: ConjunctionCheckResponse;
+  risk: SatelliteFinderComparisonRisk;
 }
 
 export interface SatelliteFinderComparisonError {

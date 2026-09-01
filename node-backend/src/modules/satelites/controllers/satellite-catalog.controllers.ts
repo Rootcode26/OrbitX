@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from "express";
+import type { AuthenticatedRequest } from "../../../auth/types.ts";
 import {
   getSatelliteCatalogPage,
   getSatelliteCatalogRecord,
@@ -8,7 +9,7 @@ import { SatelliteNotFoundError } from "../services/satellite-read.errors.ts";
 import { satelliteCatalogQuerySchema } from "../validation/satellite-catalog.validation.ts";
 import { satelliteNoradParamsSchema } from "../validation/satellite-read.validation.ts";
 
-export const listSatelliteCatalog = async (req: Request, res: Response, next: NextFunction) => {
+export const listSatelliteCatalog = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   const query = satelliteCatalogQuerySchema.safeParse(req.query);
 
   if (!query.success) {
@@ -19,23 +20,23 @@ export const listSatelliteCatalog = async (req: Request, res: Response, next: Ne
   }
 
   try {
-    const catalog = await getSatelliteCatalogPage(query.data);
+    const catalog = await getSatelliteCatalogPage(query.data, req.authUserId ?? null);
     return res.status(200).json({ data: catalog });
   } catch (error) {
     return next(error);
   }
 };
 
-export const getSatelliteCatalogFilterOptions = async (_req: Request, res: Response, next: NextFunction) => {
+export const getSatelliteCatalogFilterOptions = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const options = await getSatelliteCatalogOptions();
+    const options = await getSatelliteCatalogOptions(req.authUserId ?? null);
     return res.status(200).json({ data: options });
   } catch (error) {
     return next(error);
   }
 };
 
-export const getSatelliteCatalogItem = async (req: Request, res: Response, next: NextFunction) => {
+export const getSatelliteCatalogItem = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   const params = satelliteNoradParamsSchema.safeParse(req.params);
 
   if (!params.success) {
@@ -46,7 +47,7 @@ export const getSatelliteCatalogItem = async (req: Request, res: Response, next:
   }
 
   try {
-    const satellite = await getSatelliteCatalogRecord(params.data.noradCatId);
+    const satellite = await getSatelliteCatalogRecord(params.data.noradCatId, req.authUserId ?? null);
     return res.status(200).json({ data: satellite });
   } catch (error) {
     if (error instanceof SatelliteNotFoundError) {

@@ -1,6 +1,7 @@
 import { db } from "../../../db";
 import { SatelitePropagationRequestInfo } from "./types";
 import { LatestSatelliteTle } from "../types.ts";
+import { satelliteVisibilityClause } from "./satellite-visibility.ts";
 
 const latestSatelliteTlesByNoradIdsQuery = `
   SELECT DISTINCT ON (satellite.norad_cat_id)
@@ -43,6 +44,7 @@ const conjunctionCandidateTlesQuery = `
     JOIN satelite_orbit_data orbit
       ON orbit.satellite_id = satellite.id
     WHERE satellite.norad_cat_id <> $1
+      AND ${satelliteVisibilityClause("$3")}
       AND orbit.tle_line1 IS NOT NULL
       AND orbit.tle_line2 IS NOT NULL
       AND COALESCE(orbit.height_km, (orbit.apogee_km + orbit.perigee_km) / 2.0) IS NOT NULL
@@ -126,8 +128,8 @@ export const getLatestSatelliteTlesByNoradIds = async (noradCatIds: number[]): P
   return result.rows;
 };
 
-export const getConjunctionCandidateTles = async (primaryNoradId: number, limit: number): Promise<LatestSatelliteTle[]> => {
-  const result = await db.query<LatestSatelliteTle>(conjunctionCandidateTlesQuery, [primaryNoradId, limit]);
+export const getConjunctionCandidateTles = async (primaryNoradId: number, limit: number, clerkUserId: string | null): Promise<LatestSatelliteTle[]> => {
+  const result = await db.query<LatestSatelliteTle>(conjunctionCandidateTlesQuery, [primaryNoradId, limit, clerkUserId]);
 
   return result.rows;
 };

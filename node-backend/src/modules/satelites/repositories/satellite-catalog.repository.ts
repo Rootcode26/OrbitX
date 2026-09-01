@@ -3,6 +3,7 @@ import {
   SatelliteCatalogDatabaseRow,
   SatelliteCatalogQuery,
 } from "../types.ts";
+import { satelliteVisibilityClause } from "./satellite-visibility.ts";
 
 const activeOperationalStatuses = ["+", "P", "B", "S", "X"];
 
@@ -101,12 +102,13 @@ interface CatalogFilter {
   values: unknown[];
 }
 
-const buildCatalogFilter = (query: SatelliteCatalogQuery): CatalogFilter => {
+const buildCatalogFilter = (query: SatelliteCatalogQuery, clerkUserId: string | null): CatalogFilter => {
   // The catalog represents every stored SATCAT object. Live state and TLE
   // joins are optional enrichments, so records remain discoverable before
-  // propagation has run.
-  const clauses: string[] = [];
-  const values: unknown[] = [];
+  // propagation has run. $1 is always the caller's Clerk id (or null) that drives
+  // the visibility clause; user-supplied filters are appended after it.
+  const clauses: string[] = [satelliteVisibilityClause("$1")];
+  const values: unknown[] = [clerkUserId];
 
   const addClause = (clause: (parameter: string) => string, value: unknown) => {
     values.push(value);
@@ -184,12 +186,14 @@ const satelliteCatalogRecordQuery = `
   FROM satellites satellite
   ${catalogJoins}
   WHERE satellite.norad_cat_id = $1
+    AND ${satelliteVisibilityClause("$2")}
 `;
 
 const catalogOwnersQuery = `
   SELECT DISTINCT satellite.owner
   FROM satellites satellite
-  WHERE satellite.owner IS NOT NULL
+  WHERE ${satelliteVisibilityClause("$1")}
+    AND satellite.owner IS NOT NULL
     AND TRIM(satellite.owner) <> ''
   ORDER BY satellite.owner
 `;
@@ -212,8 +216,8 @@ const catalogAltitudeRangeQuery = `
   FROM latest_orbits
 `;
 
-export const findSatelliteCatalogPage = async (query: SatelliteCatalogQuery): Promise<{ rows: SatelliteCatalogDatabaseRow[]; total: number }> => {
-  const filter = buildCatalogFilter(query);
+export const findSatelliteCatalogPage = async (query: SatelliteCatalogQuery, clerkUserId: string | null): Promise<{ rows: SatelliteCatalogDatabaseRow[]; total: number }> => {
+  const filter = buildCatalogFilter(query, clerkUserId);
   const offset = (query.page - 1) * query.page_size;
   const sortExpression = catalogSortExpressions[query.sort];
   const direction = query.direction === "desc" ? "DESC" : "ASC";
@@ -251,19 +255,19 @@ export const findSatelliteCatalogPage = async (query: SatelliteCatalogQuery): Pr
   };
 };
 
-export const findSatelliteCatalogRecord = async (noradCatId: number): Promise<SatelliteCatalogDatabaseRow | null> => {
-  const result = await db.query<SatelliteCatalogDatabaseRow>(satelliteCatalogRecordQuery, [noradCatId]);
+export const findSatelliteCatalogRecord = async (noradCatId: number, clerkUserId: string | null): Promise<SatelliteCatalogDatabaseRow | null> => {
+  const result = await db.query<SatelliteCatalogDatabaseRow>(satelliteCatalogRecordQuery, [noradCatId, clerkUserId]);
 
   return result.rows[0] ?? null;
 };
 
-export const findSatelliteCatalogOptions = async (): Promise<{
+export const findSatelliteCatalogOptions = async (clerkUserId: string | null): Promise<{
   owners: string[];
   minimumAltitudeKm: number | null;
   maximumAltitudeKm: number | null;
 }> => {
   const [ownersResult, altitudeResult] = await Promise.all([
-    db.query<{ owner: string }>(catalogOwnersQuery),
+    db.query<{ owner: string }>(catalogOwnersQuery, [clerkUserId]),
     db.query<{ minimum: number | null; maximum: number | null }>(catalogAltitudeRangeQuery),
   ]);
 

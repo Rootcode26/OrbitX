@@ -43,8 +43,8 @@ const toSatelliteCurrentState = (row: SatelliteStateDatabaseRow): SatelliteCurre
   revolution_number: row.revolution_number,
 });
 
-export const getLatestSatelliteStates = async (limit: number): Promise<SatelliteStateCollection> => {
-  const rows = await findLatestSatelliteStates(limit);
+export const getLatestSatelliteStates = async (limit: number, clerkUserId: string | null): Promise<SatelliteStateCollection> => {
+  const rows = await findLatestSatelliteStates(limit, clerkUserId);
   const states = rows.map(toSatelliteCurrentState);
 
   return {
@@ -54,8 +54,8 @@ export const getLatestSatelliteStates = async (limit: number): Promise<Satellite
   };
 };
 
-export const getLatestSatelliteState = async (noradCatId: number): Promise<SatelliteCurrentState> => {
-  const row = await findLatestSatelliteState(noradCatId);
+export const getLatestSatelliteState = async (noradCatId: number, clerkUserId: string | null): Promise<SatelliteCurrentState> => {
+  const row = await findLatestSatelliteState(noradCatId, clerkUserId);
 
   if (!row) {
     throw new SatelliteStateNotFoundError(noradCatId);
@@ -70,10 +70,11 @@ export const getNearbySatelliteStates = async (
   primaryNoradCatId: number,
   page: number,
   pageSize: number,
+  clerkUserId: string | null,
 ): Promise<NearbySatellitePage> => {
   const [primaryRow, nearby] = await Promise.all([
-    findLatestSatelliteState(primaryNoradCatId),
-    findNearbySatelliteStates(primaryNoradCatId, nearbyRadiusKm, page, pageSize),
+    findLatestSatelliteState(primaryNoradCatId, clerkUserId),
+    findNearbySatelliteStates(primaryNoradCatId, nearbyRadiusKm, page, pageSize, clerkUserId),
   ]);
 
   if (!primaryRow) {

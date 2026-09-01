@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { requireClerkAuth } from "../../../auth/clerk-auth.middleware.ts";
+import { optionalClerkAuth, requireClerkAuth } from "../../../auth/clerk-auth.middleware.ts";
 import { getSatelitesTleData } from "../controllers/satelites-info.controllers";
 import { getConjunctionData } from "../controllers/satelites-conjuction.controllers";
 import {
@@ -52,9 +52,9 @@ import {
 const router: Router = Router();
 
 router.get("/all", getSatelitesTleData);
-router.get("/catalog", listSatelliteCatalog);
-router.get("/catalog/options", getSatelliteCatalogFilterOptions);
-router.get("/catalog/:noradCatId", getSatelliteCatalogItem);
+router.get("/catalog", optionalClerkAuth, listSatelliteCatalog);
+router.get("/catalog/options", optionalClerkAuth, getSatelliteCatalogFilterOptions);
+router.get("/catalog/:noradCatId", optionalClerkAuth, getSatelliteCatalogItem);
 router.get("/overview", getOverviewData);
 router.get("/analytics", getAnalyticsData);
 router.get("/sources", getDataSources);
@@ -63,11 +63,11 @@ router.get("/conjunctions/events/:eventId", getConjunctionEventDetails);
 router.get("/conjunctions/analytics", getConjunctionAnalyticsData);
 router.get("/alerts", listAlerts);
 router.get("/wishlist", requireClerkAuth, listUserWishlist);
-router.get("/states/current", listCurrentSatelliteStates);
-router.get("/states/:noradCatId/current", getCurrentSatelliteState);
-router.get("/finder/:noradCatId/nearby", listNearbySatelliteStates);
+router.get("/states/current", optionalClerkAuth, listCurrentSatelliteStates);
+router.get("/states/:noradCatId/current", optionalClerkAuth, getCurrentSatelliteState);
+router.get("/finder/:noradCatId/nearby", optionalClerkAuth, listNearbySatelliteStates);
 router.get("/maker/commissioned", requireClerkAuth, listCommissionedSatelliteObjects);
-router.get("/:noradCatId/history", getSatelliteHistoryRecords);
+router.get("/:noradCatId/history", optionalClerkAuth, getSatelliteHistoryRecords);
 router.post("/maker/preview", requireClerkAuth, createSatellitePreview);
 router.post("/maker/commission", requireClerkAuth, commissionSatelliteObject);
 router.delete("/maker/commissioned/:noradCatId", requireClerkAuth, deleteCommissionedSatelliteObject);

@@ -1,6 +1,8 @@
 import { Panel } from "@/components/ui/panel";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatLocalDateTime } from "@/lib/format-date-time";
+import { ConjunctionRiskBadge } from "@/features/conjunctions/components/conjunction-risk-badge";
+import { classifySeparationRisk } from "@/features/conjunctions/risk";
 import type { NearbySatelliteResult } from "../api";
 
 export function NearbySatelliteTable({
@@ -26,7 +28,7 @@ export function NearbySatelliteTable({
           <thead className="bg-[rgba(228,222,208,.016)] text-left">
             <tr className="border-b border-[var(--bd)]">
               {[
-                "Satellite", "NORAD", "Type", "Owner", "Distance", "Altitude", "Speed", "Relative speed", "Inclination", "Latitude", "Longitude", "State time",
+                "Satellite", "NORAD", "Type", "Owner", "Distance", "Conjunction", "Altitude", "Speed", "Relative speed", "Inclination", "Latitude", "Longitude", "State time",
               ].map((heading, index) => (
                 <th key={heading} className={`px-3.5 py-[9px] text-[10px] font-medium text-text-tertiary ${index > 0 ? "text-right" : ""}`}>{heading}</th>
               ))}
@@ -35,7 +37,7 @@ export function NearbySatelliteTable({
           <tbody>
             {loading && !result ? Array.from({ length: 10 }).map((_, row) => (
               <tr key={row} className="border-b border-[var(--bd2)]">
-                {Array.from({ length: 12 }).map((__, column) => (
+                {Array.from({ length: 13 }).map((__, column) => (
                   <td key={column} className="px-3.5 py-3"><Skeleton className="h-2.5 w-full" /></td>
                 ))}
               </tr>
@@ -46,6 +48,11 @@ export function NearbySatelliteTable({
                 <NumericCell>{objectTypeLabel(satellite.object_type)}</NumericCell>
                 <NumericCell>{satellite.owner ?? "—"}</NumericCell>
                 <NumericCell accent>{satellite.separation_km.toFixed(1)} km</NumericCell>
+                <td className="whitespace-nowrap px-3.5 py-3 text-right">
+                  <div className="flex justify-end">
+                    <ConjunctionRiskBadge level={classifySeparationRisk(satellite.separation_km)} />
+                  </div>
+                </td>
                 <NumericCell>{satellite.height_km.toFixed(1)} km</NumericCell>
                 <NumericCell>{satellite.speed_km_s.toFixed(3)} km/s</NumericCell>
                 <NumericCell>{satellite.relative_velocity_km_s.toFixed(3)} km/s</NumericCell>

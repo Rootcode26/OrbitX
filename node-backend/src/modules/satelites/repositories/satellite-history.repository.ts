@@ -3,16 +3,18 @@ import {
   SatelliteHistoryDatabaseRow,
   SatelliteSummaryDatabaseRow,
 } from "../types.ts";
+import { satelliteVisibilityClause } from "./satellite-visibility.ts";
 
 const satelliteSummaryQuery = `
   SELECT
-    norad_cat_id,
-    satellite_name,
-    object_type,
-    owner,
-    operational_status
-  FROM satellites
-  WHERE norad_cat_id = $1
+    satellite.norad_cat_id,
+    satellite.satellite_name,
+    satellite.object_type,
+    satellite.owner,
+    satellite.operational_status
+  FROM satellites satellite
+  WHERE satellite.norad_cat_id = $1
+    AND ${satelliteVisibilityClause("$2")}
 `;
 
 const satelliteHistoryQuery = `
@@ -35,6 +37,7 @@ const satelliteHistoryQuery = `
     JOIN satelite_orbit_data orbit
       ON orbit.satellite_id = satellite.id
     WHERE satellite.norad_cat_id = $1
+      AND ${satelliteVisibilityClause("$4")}
       AND orbit.height_km IS NOT NULL
       AND orbit.apogee_km IS NOT NULL
       AND orbit.perigee_km IS NOT NULL
@@ -50,14 +53,14 @@ const satelliteHistoryQuery = `
   LIMIT $3
 `;
 
-export const findSatelliteSummary = async (noradCatId: number): Promise<SatelliteSummaryDatabaseRow | null> => {
-  const result = await db.query<SatelliteSummaryDatabaseRow>(satelliteSummaryQuery, [noradCatId]);
+export const findSatelliteSummary = async (noradCatId: number, clerkUserId: string | null): Promise<SatelliteSummaryDatabaseRow | null> => {
+  const result = await db.query<SatelliteSummaryDatabaseRow>(satelliteSummaryQuery, [noradCatId, clerkUserId]);
 
   return result.rows[0] ?? null;
 };
 
-export const findSatelliteHistory = async (noradCatId: number, limit: number, before: string | undefined): Promise<SatelliteHistoryDatabaseRow[]> => {
-  const values = [noradCatId, before ?? null, limit + 1];
+export const findSatelliteHistory = async (noradCatId: number, limit: number, before: string | undefined, clerkUserId: string | null): Promise<SatelliteHistoryDatabaseRow[]> => {
+  const values = [noradCatId, before ?? null, limit + 1, clerkUserId];
   const result = await db.query<SatelliteHistoryDatabaseRow>(satelliteHistoryQuery, values);
 
   return result.rows;

@@ -1,4 +1,5 @@
 import { Panel } from "@/components/ui/panel";
+import { DateTimeField } from "@/components/ui/date-time-field";
 import { countryOptions } from "../data";
 import type { MakerObjectType, SatelliteDraftConfig } from "../types";
 import { OrbitSlider } from "./orbit-slider";
@@ -81,15 +82,11 @@ export function SatelliteConfigurationForm({
       <OrbitSlider label="Apsis offset" value={config.apsisOffsetKm} minimum={0} maximum={Math.max(0, Math.min(300, config.altitudeKm - 160))} step={1} unit="km" onChange={(apsisOffsetKm) => onChange({ apsisOffsetKm })} />
 
       <div className="grid border-t border-[var(--bd2)] min-[1000px]:grid-cols-2 min-[1000px]:divide-x min-[1000px]:divide-[var(--bd2)]">
-        <label className="block px-3.5 py-3">
-          <span className="text-[10px] font-medium text-text-tertiary">Epoch (local time)</span>
-          <input
-            type="datetime-local"
-            value={config.epochUtc}
-            onChange={(event) => onChange({ epochUtc: event.target.value })}
-            className="numeric mt-2 h-9 w-full border border-[var(--bd)] bg-field px-3 text-[10.5px] text-text-primary outline-none focus:border-[var(--acc-border)] [color-scheme:dark]"
-          />
-        </label>
+        <DateTimeField
+          label="Epoch (local time)"
+          value={config.epochUtc}
+          onChange={(epochUtc) => onChange({ epochUtc })}
+        />
         <label className="block px-3.5 py-3">
           <span className="text-[10px] font-medium text-text-tertiary">B* drag term · optional</span>
           <input

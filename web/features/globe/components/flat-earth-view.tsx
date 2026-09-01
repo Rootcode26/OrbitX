@@ -27,7 +27,7 @@ interface FlatEarthViewProps {
 }
 
 const classColors = {
-  active: "#8FAFC4",
+  active: "#3E76AD",
   inactive: "#787E85",
   debris: "#7E7B74",
   rocket: "#B2843C",

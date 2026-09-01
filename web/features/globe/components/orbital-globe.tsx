@@ -38,7 +38,7 @@ interface AnimatedGlobeObject {
 }
 
 const objectColors: Record<GlobeObjectClass, number> = {
-  active: 0x8fafc4,
+  active: 0x3e76ad,
   inactive: 0x787e85,
   debris: 0x7e7b74,
   rocket: 0xb2843c,
@@ -46,7 +46,7 @@ const objectColors: Record<GlobeObjectClass, number> = {
 };
 
 const orbitColors: Record<GlobeObjectClass, number> = {
-  active: 0x7198ad,
+  active: 0x4f82b0,
   inactive: 0x6d7478,
   debris: 0x77736c,
   rocket: 0xa47738,

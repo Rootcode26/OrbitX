@@ -3,6 +3,7 @@ import {
   NearbySatelliteStateDatabaseRow,
   SatelliteStateDatabaseRow,
 } from "../types.ts";
+import { satelliteVisibilityClause } from "./satellite-visibility.ts";
 
 const satelliteStateColumns = `
   satellite.norad_cat_id,
@@ -71,6 +72,7 @@ const latestSatelliteStatesQuery = `
     FROM latest_states
     JOIN satellites satellite
       ON satellite.id = latest_states.satellite_id
+    WHERE ${satelliteVisibilityClause("$2")}
   ),
   prioritized_states AS (
     SELECT
@@ -103,6 +105,7 @@ const latestSatelliteStateQuery = `
   JOIN satellites satellite
     ON satellite.id = orbit.satellite_id
   WHERE satellite.norad_cat_id = $1
+    AND ${satelliteVisibilityClause("$2")}
     AND ${completeStatePredicate}
   ORDER BY orbit.calculated_at DESC
   LIMIT 1
@@ -142,6 +145,11 @@ const nearbySatelliteStatesQuery = `
     CROSS JOIN primary_state reference
     WHERE orbit.satellite_id <> reference.satellite_id
       AND orbit.reference_frame = reference.reference_frame
+      -- Only compare states propagated to the same instant as the reference, so
+      -- the separation differences positions at one epoch (never mixes times
+      -- when a propagation run skipped or lagged some objects).
+      AND orbit.calculated_at = reference.calculated_at
+      AND ${satelliteVisibilityClause("$5")}
       AND (
         POWER(orbit.position_x_km - reference.position_x_km, 2)
         + POWER(orbit.position_y_km - reference.position_y_km, 2)
@@ -157,14 +165,14 @@ const nearbySatelliteStatesQuery = `
   OFFSET $4
 `;
 
-export const findLatestSatelliteStates = async (limit: number): Promise<SatelliteStateDatabaseRow[]> => {
-  const result = await db.query<SatelliteStateDatabaseRow>(latestSatelliteStatesQuery, [limit]);
+export const findLatestSatelliteStates = async (limit: number, clerkUserId: string | null): Promise<SatelliteStateDatabaseRow[]> => {
+  const result = await db.query<SatelliteStateDatabaseRow>(latestSatelliteStatesQuery, [limit, clerkUserId]);
 
   return result.rows;
 };
 
-export const findLatestSatelliteState = async (noradCatId: number): Promise<SatelliteStateDatabaseRow | null> => {
-  const result = await db.query<SatelliteStateDatabaseRow>(latestSatelliteStateQuery, [noradCatId]);
+export const findLatestSatelliteState = async (noradCatId: number, clerkUserId: string | null): Promise<SatelliteStateDatabaseRow | null> => {
+  const result = await db.query<SatelliteStateDatabaseRow>(latestSatelliteStateQuery, [noradCatId, clerkUserId]);
 
   return result.rows[0] ?? null;
 };
@@ -174,6 +182,7 @@ export const findNearbySatelliteStates = async (
   radiusKm: number,
   page: number,
   pageSize: number,
+  clerkUserId: string | null,
 ): Promise<{ rows: NearbySatelliteStateDatabaseRow[]; total: number }> => {
   const offset = (page - 1) * pageSize;
   const result = await db.query<NearbySatelliteStateDatabaseRow>(nearbySatelliteStatesQuery, [
@@ -181,6 +190,7 @@ export const findNearbySatelliteStates = async (
     radiusKm,
     pageSize,
     offset,
+    clerkUserId,
   ]);
 
   return {

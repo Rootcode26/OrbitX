@@ -89,6 +89,7 @@ const overviewSummaryQuery = `
       WHERE latest_alert.acknowledged_at IS NULL
     ) AS unacknowledged_alerts
   FROM satellites
+  WHERE created_by_user_id IS NULL
 `;
 
 const classificationQuery = `
@@ -107,6 +108,7 @@ const classificationQuery = `
       WHERE object_type IS NULL OR object_type = 'UNK'
     )::integer AS unknown
   FROM satellites
+  WHERE created_by_user_id IS NULL
 `;
 
 const altitudeDensityQuery = `
@@ -137,7 +139,8 @@ const altitudeDensityQuery = `
 const topOwnersQuery = `
   SELECT owner AS name, COUNT(*)::integer AS count
   FROM satellites
-  WHERE owner IS NOT NULL AND TRIM(owner) <> ''
+  WHERE created_by_user_id IS NULL
+    AND owner IS NOT NULL AND TRIM(owner) <> ''
   GROUP BY owner
   ORDER BY count DESC, owner ASC
   LIMIT 10
@@ -152,13 +155,14 @@ const operationalStatusesQuery = `
     END AS name,
     COUNT(*)::integer AS count
   FROM satellites
+  WHERE created_by_user_id IS NULL
   GROUP BY name
   ORDER BY name
 `;
 
 const analyticsTotalsQuery = `
   SELECT
-    (SELECT COUNT(*) FROM satellites)::integer AS total_objects,
+    (SELECT COUNT(*) FROM satellites WHERE created_by_user_id IS NULL)::integer AS total_objects,
     (
       SELECT COUNT(DISTINCT satellite_id)
       FROM satelite_orbit_data
@@ -167,7 +171,7 @@ const analyticsTotalsQuery = `
 
 const dataSourceSummaryQuery = `
   SELECT
-    (SELECT COUNT(*) FROM satellites)::text AS satcat_records,
+    (SELECT COUNT(*) FROM satellites WHERE created_by_user_id IS NULL)::text AS satcat_records,
     (
       SELECT COUNT(DISTINCT satellite_id)
       FROM satelite_orbit_data

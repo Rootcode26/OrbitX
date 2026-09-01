@@ -48,10 +48,10 @@ const toHistoryRecord = (row: SatelliteHistoryDatabaseRow): SatelliteHistoryReco
   revolution_number: row.revolution_number,
 });
 
-export const getSatelliteHistory = async (noradCatId: number, limit: number, before: string | undefined): Promise<SatelliteHistoryPage> => {
+export const getSatelliteHistory = async (noradCatId: number, limit: number, before: string | undefined, clerkUserId: string | null): Promise<SatelliteHistoryPage> => {
   const [satellite, rows] = await Promise.all([
-    findSatelliteSummary(noradCatId),
-    findSatelliteHistory(noradCatId, limit, before),
+    findSatelliteSummary(noradCatId, clerkUserId),
+    findSatelliteHistory(noradCatId, limit, before, clerkUserId),
   ]);
 
   if (!satellite) {

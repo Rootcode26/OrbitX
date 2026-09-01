@@ -61,8 +61,8 @@ const toCatalogRecord = (row: SatelliteCatalogDatabaseRow): SatelliteCatalogReco
   ),
 });
 
-export const getSatelliteCatalogPage = async (query: SatelliteCatalogQuery): Promise<SatelliteCatalogPage> => {
-  const { rows, total } = await findSatelliteCatalogPage(query);
+export const getSatelliteCatalogPage = async (query: SatelliteCatalogQuery, clerkUserId: string | null): Promise<SatelliteCatalogPage> => {
+  const { rows, total } = await findSatelliteCatalogPage(query, clerkUserId);
 
   return {
     satellites: rows.map(toCatalogRecord),
@@ -75,8 +75,8 @@ export const getSatelliteCatalogPage = async (query: SatelliteCatalogQuery): Pro
   };
 };
 
-export const getSatelliteCatalogRecord = async (noradCatId: number): Promise<SatelliteCatalogRecord> => {
-  const row = await findSatelliteCatalogRecord(noradCatId);
+export const getSatelliteCatalogRecord = async (noradCatId: number, clerkUserId: string | null): Promise<SatelliteCatalogRecord> => {
+  const row = await findSatelliteCatalogRecord(noradCatId, clerkUserId);
 
   if (!row) {
     throw new SatelliteNotFoundError(noradCatId);
@@ -85,8 +85,8 @@ export const getSatelliteCatalogRecord = async (noradCatId: number): Promise<Sat
   return toCatalogRecord(row);
 };
 
-export const getSatelliteCatalogOptions = async (): Promise<SatelliteCatalogOptions> => {
-  const options = await findSatelliteCatalogOptions();
+export const getSatelliteCatalogOptions = async (clerkUserId: string | null): Promise<SatelliteCatalogOptions> => {
+  const options = await findSatelliteCatalogOptions(clerkUserId);
 
   return {
     owners: options.owners,

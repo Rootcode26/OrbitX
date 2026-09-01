@@ -183,12 +183,26 @@ export interface ConjunctionScreenRequest {
   include_separation_profile?: boolean;
 }
 
+export interface ConjunctionScreenComparisonRisk {
+  risk_level: ConjunctionEventRiskLevel;
+  risk_score: number | null;
+  minimum_separation_km: number | null;
+  relative_velocity_km_s: number | null;
+  tca: string | null;
+}
+
+export interface ConjunctionScreenComparison {
+  satellite: ConjunctionEndpointObject;
+  result: Record<string, unknown>;
+  risk: ConjunctionScreenComparisonRisk;
+}
+
 export interface ConjunctionScreenResult {
   primary_satellite: ConjunctionEndpointObject;
   requested: number;
   completed: number;
   failed: number;
-  comparisons: { satellite: ConjunctionEndpointObject; result: Record<string, unknown> }[];
+  comparisons: ConjunctionScreenComparison[];
   errors: { satellite: ConjunctionEndpointObject; message: string }[];
 }
 

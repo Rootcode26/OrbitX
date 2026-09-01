@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "react-day-picker/style.css";
 
 :root {
   --bg: #0c0c0b;
@@ -34,7 +35,7 @@
   --nominal: #5a9873;
   --nominal-fill: rgba(90, 152, 115, 0.12);
   --nominal-border: rgba(90, 152, 115, 0.35);
-  --object-active: #8fafc4;
+  --object-active: #3e76ad;
   --object-inactive: #787e85;
   --object-rocket: #b2843c;
   --object-debris: #7e7b74;
@@ -277,4 +278,69 @@ a {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* Themed react-day-picker used by the date-time field (satellite maker epoch). */
+.dtf-calendar {
+  --rdp-accent-color: var(--acc-text);
+  --rdp-accent-background-color: var(--acc-tint);
+  --rdp-day-width: 30px;
+  --rdp-day-height: 30px;
+  --rdp-day_button-width: 30px;
+  --rdp-day_button-height: 30px;
+  --rdp-day_button-border-radius: 0;
+  --rdp-selected-border: 1px solid var(--acc-border);
+  --rdp-today-color: var(--acc-text);
+  --rdp-outside-opacity: 0.3;
+  --rdp-disabled-opacity: 0.25;
+  --rdp-nav_button-width: 24px;
+  --rdp-nav_button-height: 24px;
+  --rdp-weekday-opacity: 1;
+  --rdp-weekday-text-transform: uppercase;
+  margin: 0;
+  font-size: 10.5px;
+  color: var(--color-text-secondary);
+}
+.dtf-calendar .rdp-month_caption,
+.dtf-calendar .rdp-caption_label {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.dtf-calendar .rdp-button_previous,
+.dtf-calendar .rdp-button_next {
+  border: 1px solid var(--bd);
+  color: var(--color-text-secondary);
+}
+.dtf-calendar .rdp-button_previous:hover,
+.dtf-calendar .rdp-button_next:hover {
+  border-color: var(--acc-border);
+  color: var(--color-text-primary);
+}
+.dtf-calendar .rdp-weekday {
+  font-size: 8px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  color: var(--color-text-tertiary);
+}
+.dtf-calendar .rdp-day_button {
+  border: 1px solid transparent;
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.dtf-calendar .rdp-day:not(.rdp-disabled) .rdp-day_button:hover {
+  border-color: var(--acc-border);
+  color: var(--color-text-primary);
+}
+.dtf-calendar .rdp-today .rdp-day_button {
+  color: var(--acc-text);
+  font-weight: 600;
+}
+.dtf-calendar .rdp-selected .rdp-day_button {
+  background: var(--acc-tint);
+  border-color: var(--acc-border);
+  color: var(--acc-text);
+  font-weight: 600;
 }
