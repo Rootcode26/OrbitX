@@ -75,7 +75,7 @@ export function AlertsPage() {
   return (
     <AppShell
       title="Alerts"
-      subtitle="Alert centre · one open alert per object pair · ≤ 500 km"
+      subtitle="Alert centre · next 7 days · one alert per object pair · ≤ 500 km"
       activePath="/alerts"
       unacknowledgedAlerts={counts.unacknowledged}
     >

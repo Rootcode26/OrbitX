@@ -44,6 +44,7 @@ export async function fetchConjunctionEvents(
   if (query.to) params.set("to", query.to);
   if (query.before) params.set("before", query.before);
   if (query.upcoming !== undefined) params.set("upcoming", String(query.upcoming));
+  if (query.horizonHours !== undefined) params.set("horizon_hours", String(query.horizonHours));
   if (query.limit !== undefined) params.set("limit", String(query.limit));
 
   const search = params.toString();

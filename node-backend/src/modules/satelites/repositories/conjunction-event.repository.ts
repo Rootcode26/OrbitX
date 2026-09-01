@@ -14,14 +14,9 @@ const beginTransactionQuery = "BEGIN";
 const commitTransactionQuery = "COMMIT";
 const rollbackTransactionQuery = "ROLLBACK";
 
-// The event list is primarily a close-approach view, but an explicit critical
-// verdict must never disappear just because the service omitted its distance
-// field (or reported a value outside the display threshold). Keep the normal
-// distance gate for other risk levels and always retain critical events.
 const conjunctionEventEligibilitySql = (alias: string): string => `(
-  (${alias}.minimum_separation_km IS NOT NULL AND ${alias}.minimum_separation_km <= ${CONJUNCTION_ALERT_MAX_SEPARATION_KM})
-  OR ${alias}.risk_level = 'CRITICAL'
-  OR ${alias}.risk_score >= 80
+  ${alias}.minimum_separation_km IS NOT NULL
+  AND ${alias}.minimum_separation_km <= ${CONJUNCTION_ALERT_MAX_SEPARATION_KM}
 )`;
 
 const latestConjunctionEventIdsSql = `
@@ -120,6 +115,39 @@ const insertConjunctionEventQuery = `
   FROM objects
   WHERE objects.object_a_id IS NOT NULL
     AND objects.object_b_id IS NOT NULL
+  RETURNING id
+`;
+
+const existingConjunctionEventForPairQuery = `
+  SELECT event.id
+  FROM conjunction_events event
+  JOIN satellites object_a ON object_a.id = event.object_a_id
+  JOIN satellites object_b ON object_b.id = event.object_b_id
+  WHERE LEAST(object_a.norad_cat_id, object_b.norad_cat_id) = LEAST($1::integer, $2::integer)
+    AND GREATEST(object_a.norad_cat_id, object_b.norad_cat_id) = GREATEST($1::integer, $2::integer)
+  ORDER BY event.computed_at DESC, event.id DESC
+  LIMIT 1
+  FOR UPDATE OF event
+`;
+
+const updateConjunctionEventQuery = `
+  UPDATE conjunction_events
+  SET
+    screening_started_at = $2,
+    screening_duration_minutes = $3,
+    screening_step_seconds = $4,
+    computed_at = $5,
+    tca = $6,
+    minimum_separation_km = $7,
+    relative_velocity_km_s = $8,
+    collision_probability = $9,
+    risk_score = $10,
+    risk_level = $11,
+    encounter_angle_degrees = $12,
+    radial_uncertainty_m = $13,
+    separation_profile = $14::jsonb,
+    raw_result = $15::jsonb
+  WHERE id = $1
   RETURNING id
 `;
 
@@ -300,7 +328,12 @@ export const insertConjunctionEvent = async (event: ConjunctionEventWrite, alert
 
   try {
     await client.query(beginTransactionQuery);
-    const result = await client.query<{ id: string }>(insertConjunctionEventQuery, [
+    await client.query(lockConjunctionAlertPairQuery, [event.object_a_norad_id, event.object_b_norad_id]);
+    const existing = await client.query<{ id: string }>(existingConjunctionEventForPairQuery, [
+      event.object_a_norad_id,
+      event.object_b_norad_id,
+    ]);
+    const values = [
       event.object_a_norad_id,
       event.object_b_norad_id,
       event.screening_started_at,
@@ -317,7 +350,11 @@ export const insertConjunctionEvent = async (event: ConjunctionEventWrite, alert
       event.radial_uncertainty_m,
       event.separation_profile ? JSON.stringify(event.separation_profile) : null,
       JSON.stringify(event.raw_result),
-    ]);
+    ];
+    const existingEventId = existing.rows[0]?.id;
+    const result = existingEventId
+      ? await client.query<{ id: string }>(updateConjunctionEventQuery, [existingEventId, ...values.slice(2)])
+      : await client.query<{ id: string }>(insertConjunctionEventQuery, values);
     const eventId = result.rows[0]?.id;
 
     if (!eventId) {
@@ -325,7 +362,6 @@ export const insertConjunctionEvent = async (event: ConjunctionEventWrite, alert
     }
 
     if (alert && event.risk_level !== "CLEAR") {
-      await client.query(lockConjunctionAlertPairQuery, [event.object_a_norad_id, event.object_b_norad_id]);
       const matchingAlert = await client.query<{ id: string }>(matchingOpenConjunctionAlertQuery, [
         event.object_a_norad_id,
         event.object_b_norad_id,
@@ -373,17 +409,10 @@ export const findConjunctionEvents = async (query: ConjunctionEventListQuery): P
   if (query.to) addClause((parameter) => `event.computed_at <= ${parameter}::timestamptz`, query.to);
   if (query.before) addClause((parameter) => `event.computed_at < ${parameter}::timestamptz`, query.before);
   if (query.upcoming) {
-    // Include events whose TCA is unknown (the screening service returned no
-    // closest-approach time) — they still passed the <=500 km close-approach
-    // gate and must not be silently dropped. Only events with a TCA that is
-    // clearly outside the 7-day horizon are excluded.
-    clauses.push(`(
-      ${effectiveTcaSql} IS NULL
-      OR (
-        ${effectiveTcaSql} >= CURRENT_TIMESTAMP
-        AND ${effectiveTcaSql} < CURRENT_TIMESTAMP + INTERVAL '7 days'
-      )
-    )`);
+    values.push(query.horizon_hours);
+    const horizonParameter = `$${values.length}`;
+    clauses.push(`${effectiveTcaSql} >= CURRENT_TIMESTAMP`);
+    clauses.push(`${effectiveTcaSql} < CURRENT_TIMESTAMP + (${horizonParameter}::text || ' hours')::interval`);
   }
 
   values.push(query.limit + 1);

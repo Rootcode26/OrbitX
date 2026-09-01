@@ -52,7 +52,7 @@ class ConjunctionRequest(BaseModel):
     duration_minutes: int = Field(
         default=120,
         ge=1,
-        le=1440,
+        le=10080,
     )
 
     step_seconds: int = Field(
@@ -166,7 +166,7 @@ class ScreeningRequest(BaseModel):
     duration_minutes: int = Field(
         default=120,
         ge=1,
-        le=1440,
+        le=10080,
     )
 
     step_seconds: int = Field(

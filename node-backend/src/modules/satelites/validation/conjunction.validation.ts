@@ -1,10 +1,11 @@
 import { z } from "zod";
+import { CONJUNCTION_SCREENING_WINDOW_MINUTES } from "../../../constants/index.ts";
 
 export const conjunctionCheckRequestSchema = z.object({
   satellite_a_norad_id: z.number().int().positive(),
   satellite_b_norad_id: z.number().int().positive(),
   start_time: z.string().datetime({ offset: true }).optional(),
-  duration_minutes: z.number().int().min(1).max(1_440).optional(),
+  duration_minutes: z.number().int().min(1).max(CONJUNCTION_SCREENING_WINDOW_MINUTES).optional(),
   step_seconds: z.number().int().min(1).max(3_600).optional(),
   include_separation_profile: z.boolean().optional(),
 }).strict().refine(
@@ -19,7 +20,7 @@ export const satelliteFinderComparisonRequestSchema = z.object({
   primary_norad_id: z.number().int().positive(),
   comparison_norad_ids: z.array(z.number().int().positive()).min(1).max(20),
   start_time: z.string().datetime({ offset: true }).optional(),
-  duration_minutes: z.number().int().min(1).max(1_440).optional(),
+  duration_minutes: z.number().int().min(1).max(CONJUNCTION_SCREENING_WINDOW_MINUTES).optional(),
   step_seconds: z.number().int().min(1).max(3_600).optional(),
   include_separation_profile: z.boolean().optional(),
 }).strict()

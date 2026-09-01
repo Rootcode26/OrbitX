@@ -1,4 +1,7 @@
-import { CONJUNCTION_ALERT_MAX_SEPARATION_KM } from "../../../constants/index.ts";
+import {
+  CONJUNCTION_ALERT_MAX_SEPARATION_KM,
+  CONJUNCTION_SCREENING_WINDOW_MINUTES,
+} from "../../../constants/index.ts";
 import {
   findConjunctionAnalytics,
   findConjunctionEventById,
@@ -124,8 +127,8 @@ export const normalizeConjunctionResult = (request: ConjunctionCheckRequest, res
     object_a_norad_id: request.satellite_a_norad_id,
     object_b_norad_id: request.satellite_b_norad_id,
     screening_started_at: request.start_time ?? computedAt,
-    screening_duration_minutes: request.duration_minutes ?? 1_440,
-    screening_step_seconds: request.step_seconds ?? 60,
+    screening_duration_minutes: request.duration_minutes ?? CONJUNCTION_SCREENING_WINDOW_MINUTES,
+    screening_step_seconds: request.step_seconds ?? 300,
     computed_at: computedAt,
     tca: validTimestamp(readString(result, [
       "tca",
@@ -192,12 +195,27 @@ const toConjunctionEventRecord = (row: ConjunctionEventDatabaseRow): Conjunction
   raw_result: row.raw_result,
 });
 
-export const recordConjunctionResult = async (request: ConjunctionCheckRequest, result: ConjunctionCheckResponse): Promise<string> => {
+export const shouldPersistConjunctionEvent = (event: ConjunctionEventWrite): boolean => {
+  if (event.minimum_separation_km === null || event.minimum_separation_km > CONJUNCTION_ALERT_MAX_SEPARATION_KM) {
+    return false;
+  }
+
+  if (!event.tca) return false;
+  const screeningStart = Date.parse(event.screening_started_at);
+  const tca = Date.parse(event.tca);
+  if (!Number.isFinite(screeningStart) || !Number.isFinite(tca)) return false;
+
+  const windowMinutes = Math.min(event.screening_duration_minutes, CONJUNCTION_SCREENING_WINDOW_MINUTES);
+  const screeningEnd = screeningStart + windowMinutes * 60_000;
+  return tca >= screeningStart && tca <= screeningEnd;
+};
+
+export const recordConjunctionResult = async (request: ConjunctionCheckRequest, result: ConjunctionCheckResponse): Promise<string | null> => {
   const event = normalizeConjunctionResult(request, result);
+  if (!shouldPersistConjunctionEvent(event)) return null;
+
   const distance = event.minimum_separation_km === null ? "an unknown distance" : `${event.minimum_separation_km.toFixed(2)} km`;
-  const withinAlertRange = event.minimum_separation_km !== null
-    && event.minimum_separation_km <= CONJUNCTION_ALERT_MAX_SEPARATION_KM;
-  const alert = event.risk_level === "CLEAR" || !withinAlertRange ? null : {
+  const alert = event.risk_level === "CLEAR" ? null : {
     title: `${event.risk_level.toLowerCase()} conjunction detected`,
     description: `NORAD ${event.object_a_norad_id} and NORAD ${event.object_b_norad_id} have a predicted minimum separation of ${distance}.`,
   };

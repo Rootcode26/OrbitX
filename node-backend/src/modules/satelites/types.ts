@@ -777,6 +777,7 @@ export interface ConjunctionEventListQuery {
   to?: string;
   before?: string;
   upcoming?: boolean;
+  horizon_hours: number;
   limit: number;
 }
 

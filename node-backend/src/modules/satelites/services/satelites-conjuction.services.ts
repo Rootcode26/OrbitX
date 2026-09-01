@@ -1,4 +1,5 @@
 import { env } from "../../../config/env.ts";
+import { CONJUNCTION_SCREENING_WINDOW_MINUTES } from "../../../constants/index.ts";
 import { getLatestSatelliteTlesByNoradIds } from "../repositories/satelite-orbit.repository.ts";
 import {
   ConjunctionCheckRequest,
@@ -92,8 +93,8 @@ export const checkSatelliteConjunction = async (request: ConjunctionCheckRequest
       tle_line2: satelliteB.tle_line2,
     },
     start_time: request.start_time ?? new Date().toISOString(),
-    duration_minutes: request.duration_minutes ?? 1_440,
-    step_seconds: request.step_seconds ?? 60,
+    duration_minutes: request.duration_minutes ?? CONJUNCTION_SCREENING_WINDOW_MINUTES,
+    step_seconds: request.step_seconds ?? 300,
     include_seperation_profile: request.include_separation_profile ?? true,
   };
 
