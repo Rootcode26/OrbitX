@@ -362,8 +362,17 @@ export const findConjunctionEvents = async (query: ConjunctionEventListQuery): P
   if (query.to) addClause((parameter) => `event.computed_at <= ${parameter}::timestamptz`, query.to);
   if (query.before) addClause((parameter) => `event.computed_at < ${parameter}::timestamptz`, query.before);
   if (query.upcoming) {
-    clauses.push(`${effectiveTcaSql} >= CURRENT_TIMESTAMP`);
-    clauses.push(`${effectiveTcaSql} < CURRENT_TIMESTAMP + INTERVAL '7 days'`);
+    // Include events whose TCA is unknown (the screening service returned no
+    // closest-approach time) — they still passed the <=500 km close-approach
+    // gate and must not be silently dropped. Only events with a TCA that is
+    // clearly outside the 7-day horizon are excluded.
+    clauses.push(`(
+      ${effectiveTcaSql} IS NULL
+      OR (
+        ${effectiveTcaSql} >= CURRENT_TIMESTAMP
+        AND ${effectiveTcaSql} < CURRENT_TIMESTAMP + INTERVAL '7 days'
+      )
+    )`);
   }
 
   values.push(query.limit + 1);
