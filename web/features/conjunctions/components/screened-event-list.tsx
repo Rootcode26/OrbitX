@@ -26,7 +26,7 @@ export function ScreenedEventList({
     <section className="screened-events-panel panel-rise border border-[var(--bd)] bg-surface-1 min-[1240px]:sticky min-[1240px]:top-[70px]">
       <header className="flex items-center justify-between border-b border-[var(--bd)] bg-surface-2 px-3.5 py-[11px]">
         <h2 className="text-[12.5px] font-semibold tracking-[-0.006em]">Screened events</h2>
-        <span className="numeric text-[9.5px] text-text-tertiary">30 d</span>
+        <span className="numeric text-[9.5px] text-text-tertiary">TCA ±30 d</span>
       </header>
       <div className="risk-filter-grid grid grid-cols-[0.9fr_1.4fr_1fr_1.2fr_0.9fr] gap-1 border-b border-[var(--bd2)] p-2.5">
         {filters.map((item) => {

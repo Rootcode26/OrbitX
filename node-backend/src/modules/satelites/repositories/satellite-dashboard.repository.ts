@@ -57,7 +57,7 @@ const overviewSummaryQuery = `
       SELECT COUNT(*)::text
       FROM conjunction_events
       WHERE COALESCE(tca, NULLIF(raw_result->>'closest_approach_time_utc', '')::timestamptz)
-          >= CURRENT_TIMESTAMP
+          >= CURRENT_TIMESTAMP - INTERVAL '30 days'
         AND COALESCE(tca, NULLIF(raw_result->>'closest_approach_time_utc', '')::timestamptz)
           < CURRENT_TIMESTAMP + INTERVAL '30 days'
         AND id IN (${latestConjunctionEventIdsSql})
@@ -66,7 +66,7 @@ const overviewSummaryQuery = `
       SELECT COUNT(*)::text
       FROM conjunction_events
       WHERE COALESCE(tca, NULLIF(raw_result->>'closest_approach_time_utc', '')::timestamptz)
-          >= CURRENT_TIMESTAMP
+          >= CURRENT_TIMESTAMP - INTERVAL '30 days'
         AND COALESCE(tca, NULLIF(raw_result->>'closest_approach_time_utc', '')::timestamptz)
           < CURRENT_TIMESTAMP + INTERVAL '30 days'
         AND risk_level IN ('CRITICAL', 'HIGH')
@@ -85,7 +85,7 @@ const overviewSummaryQuery = `
         WHERE al.source = 'CONJUNCTION_SCREENING'
           AND ce.minimum_separation_km IS NOT NULL
           AND ce.minimum_separation_km <= ${CONJUNCTION_ALERT_MAX_SEPARATION_KM}
-          AND COALESCE(ce.tca, NULLIF(ce.raw_result->>'closest_approach_time_utc', '')::timestamptz) >= CURRENT_TIMESTAMP
+          AND COALESCE(ce.tca, NULLIF(ce.raw_result->>'closest_approach_time_utc', '')::timestamptz) >= CURRENT_TIMESTAMP - INTERVAL '30 days'
           AND COALESCE(ce.tca, NULLIF(ce.raw_result->>'closest_approach_time_utc', '')::timestamptz) < CURRENT_TIMESTAMP + INTERVAL '30 days'
         ORDER BY
           LEAST(alert_a.norad_cat_id, alert_b.norad_cat_id),
