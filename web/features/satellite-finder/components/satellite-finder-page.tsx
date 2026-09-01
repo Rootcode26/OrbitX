@@ -8,7 +8,7 @@ import { OrbitalGlobe } from "@/features/globe/components/orbital-globe";
 import { toGlobeObject } from "@/features/live-tracking/api";
 import { defaultCatalogFilters } from "@/features/orbital-objects/data";
 import { useSatelliteCatalog } from "@/features/orbital-objects/hooks/use-satellite-catalog";
-import { useNearbySatellites } from "../hooks/use-satellite-finder";
+import { useNearbySatellites, useSatelliteFinderComparison } from "../hooks/use-satellite-finder";
 import { NearbySatelliteTable } from "./nearby-satellite-table";
 import { ReferenceSelector } from "./reference-selector";
 
@@ -32,6 +32,7 @@ export function SatelliteFinderPage() {
     sort: "name",
   });
   const nearby = useNearbySatellites(selectedNoradId, currentPage, pageSize);
+  const screening = useSatelliteFinderComparison();
   const result = nearby.data?.primary_satellite.norad_cat_id === selectedNoradId ? nearby.data : null;
 
   const globeObjects = useMemo(() => {
@@ -74,6 +75,7 @@ export function SatelliteFinderPage() {
             selectedId={selectedNoradId}
             primary={result?.primary_satellite ?? null}
             onSelect={(object) => {
+              screening.reset();
               setSelectedNoradId(object.noradCatId);
               setReferenceQuery(object.name);
               setCurrentPage(1);
@@ -84,6 +86,40 @@ export function SatelliteFinderPage() {
         {errorMessage ? (
           <section className="border border-[var(--critical-border)] bg-[var(--critical-fill)] px-4 py-3 text-[11px] font-medium text-critical">
             {errorMessage} The selected satellite may not have a stored propagated state yet.
+          </section>
+        ) : null}
+        {result ? (
+          <section className="flex flex-col gap-3 border border-[var(--bd)] bg-surface-1 px-4 py-3 min-[760px]:flex-row min-[760px]:items-center min-[760px]:justify-between">
+            <div>
+              <h2 className="text-[12px] font-semibold text-text-primary">Python TCA screening</h2>
+              <p className="mt-1 text-[10px] text-text-tertiary">
+                Propagate and persist the {result.satellites.length} nearby objects shown on this page.
+              </p>
+              {screening.isSuccess ? (
+                <p className="mt-1.5 text-[10px] text-nominal">
+                  {screening.data.completed} of {screening.data.requested} checks saved
+                  {screening.data.failed > 0 ? ` · ${screening.data.failed} failed` : ""}. The Conjunctions page has been refreshed.
+                </p>
+              ) : screening.isError ? (
+                <p className="mt-1.5 text-[10px] text-critical">
+                  Screening failed. No successful result was hidden by the UI cache.
+                </p>
+              ) : null}
+            </div>
+            <button
+              type="button"
+              disabled={screening.isPending || result.satellites.length === 0}
+              onClick={() => screening.mutate({
+                primary_norad_id: result.primary_satellite.norad_cat_id,
+                comparison_norad_ids: result.satellites.map((satellite) => satellite.norad_cat_id),
+                duration_minutes: 1_440,
+                step_seconds: 60,
+                include_separation_profile: true,
+              })}
+              className="h-9 shrink-0 border border-[var(--acc-border)] bg-[var(--acc-tint)] px-4 text-[10.5px] font-medium text-[var(--acc-text)] transition-colors hover:bg-[rgba(143,175,196,.18)] disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {screening.isPending ? "Running TCA screening…" : `Screen this page (${result.satellites.length})`}
+            </button>
           </section>
         ) : null}
         <NearbySatelliteTable

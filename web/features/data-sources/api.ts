@@ -6,6 +6,6 @@ export function fetchBackendReadiness(): Promise<BackendReadiness> {
 }
 
 export async function fetchDataSources(): Promise<DataSourceStatus[]> {
-  const response = await requestJson<DataSourcesResponse>("/satellites/info/sources");
+  const response = await requestJson<DataSourcesResponse>("/satellites/info/sources", { cache: "no-store" });
   return response.data.sources;
 }

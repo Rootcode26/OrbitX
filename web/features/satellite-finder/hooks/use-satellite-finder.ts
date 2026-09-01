@@ -1,6 +1,6 @@
 "use client";
 
-import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useOrbitAuth } from "@/providers/auth-provider";
 import {
   compareSatelliteFinder,
@@ -20,6 +20,7 @@ export function useNearbySatellites(primaryNoradId: number | null, page: number,
 
 export function useSatelliteFinderComparison() {
   const auth = useOrbitAuth();
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationKey: ["satellite-finder", "compare"],
@@ -30,6 +31,17 @@ export function useSatelliteFinderComparison() {
         throw new Error("Authentication required");
       }
       return compareSatelliteFinder(token, request);
+    },
+    onSuccess: async () => {
+      // Comparisons are persisted as conjunction events by the backend. Refresh
+      // every view that reads those events so a completed check appears without
+      // requiring a hard reload or waiting for the query's stale interval.
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["conjunction-events"] }),
+        queryClient.invalidateQueries({ queryKey: ["conjunction-analytics"] }),
+        queryClient.invalidateQueries({ queryKey: ["operations-alerts"] }),
+        queryClient.invalidateQueries({ queryKey: ["data-sources"] }),
+      ]);
     },
   });
 }

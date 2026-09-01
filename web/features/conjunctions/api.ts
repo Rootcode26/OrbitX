@@ -49,6 +49,7 @@ export async function fetchConjunctionEvents(
   const search = params.toString();
   const response = await requestJson<ConjunctionEventPageResponse>(
     `/satellites/info/conjunctions/events${search ? `?${search}` : ""}`,
+    { cache: "no-store" },
   );
   return response.data;
 }
@@ -56,6 +57,7 @@ export async function fetchConjunctionEvents(
 export async function fetchConjunctionEvent(eventId: string): Promise<ConjunctionEventRecord> {
   const response = await requestJson<ConjunctionEventResponse>(
     `/satellites/info/conjunctions/events/${eventId}`,
+    { cache: "no-store" },
   );
   return response.data;
 }
@@ -63,6 +65,7 @@ export async function fetchConjunctionEvent(eventId: string): Promise<Conjunctio
 export async function fetchConjunctionAnalytics(days = 14): Promise<ConjunctionAnalytics> {
   const response = await requestJson<ConjunctionAnalyticsResponse>(
     `/satellites/info/conjunctions/analytics?days=${days}`,
+    { cache: "no-store" },
   );
   return response.data;
 }

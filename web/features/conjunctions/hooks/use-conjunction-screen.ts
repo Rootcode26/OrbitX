@@ -27,6 +27,7 @@ export function useConjunctionScreen() {
         queryClient.invalidateQueries({ queryKey: ["conjunction-events"] }),
         queryClient.invalidateQueries({ queryKey: ["conjunction-analytics"] }),
         queryClient.invalidateQueries({ queryKey: ["operations-alerts"] }),
+        queryClient.invalidateQueries({ queryKey: ["data-sources"] }),
       ]);
     },
   });
