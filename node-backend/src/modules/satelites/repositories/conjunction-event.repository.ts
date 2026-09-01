@@ -163,7 +163,7 @@ const lockConjunctionAlertPairQuery = `
   SELECT pg_advisory_xact_lock(LEAST($1::integer, $2::integer), GREATEST($1::integer, $2::integer))
 `;
 
-const matchingOpenConjunctionAlertQuery = `
+const matchingConjunctionAlertQuery = `
   SELECT alert.id
   FROM alerts alert
   JOIN conjunction_events existing_event
@@ -173,7 +173,6 @@ const matchingOpenConjunctionAlertQuery = `
   JOIN satellites existing_object_b
     ON existing_object_b.id = existing_event.object_b_id
   WHERE alert.source = 'CONJUNCTION_SCREENING'
-    AND alert.resolved_at IS NULL
     AND LEAST(existing_object_a.norad_cat_id, existing_object_b.norad_cat_id) = LEAST($1::integer, $2::integer)
     AND GREATEST(existing_object_a.norad_cat_id, existing_object_b.norad_cat_id) = GREATEST($1::integer, $2::integer)
   ORDER BY alert.updated_at DESC, alert.id DESC
@@ -188,6 +187,8 @@ const refreshConjunctionAlertQuery = `
     severity = $3,
     title = $4,
     description = $5,
+    acknowledged_at = NULL,
+    resolved_at = NULL,
     updated_at = CURRENT_TIMESTAMP
   WHERE id = $1
 `;
@@ -358,7 +359,7 @@ export const insertConjunctionEvent = async (event: ConjunctionEventWrite, alert
     }
 
     if (alert && event.risk_level !== "CLEAR") {
-      const matchingAlert = await client.query<{ id: string }>(matchingOpenConjunctionAlertQuery, [
+      const matchingAlert = await client.query<{ id: string }>(matchingConjunctionAlertQuery, [
         event.object_a_norad_id,
         event.object_b_norad_id,
       ]);

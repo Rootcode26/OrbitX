@@ -104,13 +104,22 @@ export function SatelliteFinderPage() {
                   </p>
                   {storedScreenings === 0 ? (
                     <p className="text-text-tertiary">
-                      Nothing qualified for storage: Python must return a TCA inside 7 days and a minimum separation of 500 km or less.
+                      No comparison was stored. Review the failed comparison details or the Node server persistence logs.
                     </p>
                   ) : (
                     <p className="text-text-tertiary">
-                      Stored results refreshed Alerts; results with TCA within ±24 hours also appear in Conjunctions.
+                      All successful comparisons were stored. Results at or below 500 km with TCA within ±30 days appear in Conjunctions and Alerts.
                     </p>
                   )}
+                  {screening.data.errors.length > 0 ? (
+                    <ul className="space-y-0.5 text-critical">
+                      {screening.data.errors.slice(0, 3).map((error) => (
+                        <li key={error.satellite.norad_cat_id}>
+                          {error.satellite.name} ({error.satellite.norad_cat_id}): {error.message}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
                 </div>
               ) : screening.isError ? (
                 <p className="mt-1.5 text-[10px] text-critical">

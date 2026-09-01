@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   normalizeConjunctionResult,
-  shouldPersistConjunctionEvent,
+  qualifiesForConjunctionAlert,
 } from "../src/modules/satelites/services/conjunction-event.services.ts";
 
 const request = {
@@ -76,15 +76,15 @@ test("conjunction risk falls back to miss distance when no explicit score exists
   assert.equal(normalizeConjunctionResult(request, { minimum_separation_km: 30 }).risk_level, "LOW");
 });
 
-test("only close approaches inside the seven-day screening window are persisted", () => {
-  const eligible = normalizeConjunctionResult({ ...request, duration_minutes: 10_080 }, {
-    closest_approach_time_utc: "2026-09-03T10:00:00Z",
+test("only non-clear results at or below 500 km create alerts", () => {
+  const medium = normalizeConjunctionResult(request, {
+    closest_approach_time_utc: "2026-08-28T10:00:00Z",
     minimum_separation_km: 5,
   });
-  const tooFar = { ...eligible, minimum_separation_km: 500.01 };
-  const outsideWindow = { ...eligible, tca: "2026-09-05T10:00:01.000Z" };
+  const outsideThreshold = { ...medium, minimum_separation_km: 500.001 };
+  const clear = { ...medium, risk_level: "CLEAR" as const };
 
-  assert.equal(shouldPersistConjunctionEvent(eligible), true);
-  assert.equal(shouldPersistConjunctionEvent(tooFar), false);
-  assert.equal(shouldPersistConjunctionEvent(outsideWindow), false);
+  assert.equal(qualifiesForConjunctionAlert(medium), true);
+  assert.equal(qualifiesForConjunctionAlert(outsideThreshold), false);
+  assert.equal(qualifiesForConjunctionAlert(clear), false);
 });

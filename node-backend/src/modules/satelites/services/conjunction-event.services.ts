@@ -1,7 +1,6 @@
 import {
   CONJUNCTION_ALERT_MAX_SEPARATION_KM,
   CONJUNCTION_DEFAULT_SCREENING_MINUTES,
-  CONJUNCTION_SCREENING_WINDOW_MINUTES,
 } from "../../../constants/index.ts";
 import {
   findConjunctionAnalytics,
@@ -196,30 +195,19 @@ const toConjunctionEventRecord = (row: ConjunctionEventDatabaseRow): Conjunction
   raw_result: row.raw_result,
 });
 
-export const shouldPersistConjunctionEvent = (event: ConjunctionEventWrite): boolean => {
-  if (event.minimum_separation_km === null || event.minimum_separation_km > CONJUNCTION_ALERT_MAX_SEPARATION_KM) {
-    return false;
-  }
+export const qualifiesForConjunctionAlert = (event: ConjunctionEventWrite): boolean => (
+  event.minimum_separation_km !== null
+    && event.minimum_separation_km <= CONJUNCTION_ALERT_MAX_SEPARATION_KM
+    && event.risk_level !== "CLEAR"
+);
 
-  if (!event.tca) return false;
-  const screeningStart = Date.parse(event.screening_started_at);
-  const tca = Date.parse(event.tca);
-  if (!Number.isFinite(screeningStart) || !Number.isFinite(tca)) return false;
-
-  const windowMinutes = Math.min(event.screening_duration_minutes, CONJUNCTION_SCREENING_WINDOW_MINUTES);
-  const screeningEnd = screeningStart + windowMinutes * 60_000;
-  return tca >= screeningStart && tca <= screeningEnd;
-};
-
-export const recordConjunctionResult = async (request: ConjunctionCheckRequest, result: ConjunctionCheckResponse): Promise<string | null> => {
+export const recordConjunctionResult = async (request: ConjunctionCheckRequest, result: ConjunctionCheckResponse): Promise<string> => {
   const event = normalizeConjunctionResult(request, result);
-  if (!shouldPersistConjunctionEvent(event)) return null;
-
   const distance = event.minimum_separation_km === null ? "an unknown distance" : `${event.minimum_separation_km.toFixed(2)} km`;
-  const alert = event.risk_level === "CLEAR" ? null : {
+  const alert = qualifiesForConjunctionAlert(event) ? {
     title: `${event.risk_level.toLowerCase()} conjunction detected`,
     description: `NORAD ${event.object_a_norad_id} and NORAD ${event.object_b_norad_id} have a predicted minimum separation of ${distance}.`,
-  };
+  } : null;
 
   return insertConjunctionEvent(event, alert);
 };
