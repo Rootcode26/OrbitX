@@ -1,4 +1,4 @@
-import { requestJson } from "@/lib/api/client";
+import { requestJson, requestVoid } from "@/lib/api/client";
 
 export type SatelliteMakerObjectType = "PAYLOAD" | "ROCKET_BODY" | "DEBRIS";
 
@@ -121,4 +121,11 @@ export async function commissionSatellite(token: string, request: SatelliteMaker
     body: JSON.stringify(request),
   });
   return response.data;
+}
+
+export async function deleteCommissionedSatellite(token: string, noradCatId: number): Promise<void> {
+  await requestVoid(`/satellites/info/maker/commissioned/${noradCatId}`, {
+    method: "DELETE",
+    headers: authHeaders(token),
+  });
 }

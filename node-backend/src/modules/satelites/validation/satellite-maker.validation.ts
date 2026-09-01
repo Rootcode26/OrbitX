@@ -1,5 +1,9 @@
 import { z } from "zod";
 
+export const satelliteMakerParamsSchema = z.object({
+  noradCatId: z.coerce.number().int().positive(),
+}).strict();
+
 export const satelliteMakerRequestSchema = z.object({
   object_name: z.string().trim().min(1).max(80),
   operator: z.string().trim().min(1).max(120),

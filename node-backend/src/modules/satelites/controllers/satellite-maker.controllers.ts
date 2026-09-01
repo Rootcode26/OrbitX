@@ -2,7 +2,9 @@ import { NextFunction, Request, Response } from "express";
 import type { AuthenticatedRequest } from "../../../auth/types.ts";
 import {
   commissionSatellite,
+  CommissionedSatelliteNotFoundError,
   getCommissionedSatellites,
+  removeCommissionedSatellite,
   SatelliteAlreadyCommissionedError,
   previewSatellite,
   SatelliteMakerServiceError,
@@ -11,7 +13,10 @@ import {
   ConjunctionServiceError,
   SatelliteTleNotFoundError,
 } from "../services/satelites-conjuction.services.ts";
-import { satelliteMakerRequestSchema } from "../validation/satellite-maker.validation.ts";
+import {
+  satelliteMakerParamsSchema,
+  satelliteMakerRequestSchema,
+} from "../validation/satellite-maker.validation.ts";
 
 export const listCommissionedSatelliteObjects = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
@@ -84,6 +89,31 @@ export const commissionSatelliteObject = async (req: AuthenticatedRequest, res: 
 
     if (error instanceof SatelliteMakerServiceError || error instanceof ConjunctionServiceError) {
       return res.status(502).json({ error: error.message });
+    }
+
+    return next(error);
+  }
+};
+
+export const deleteCommissionedSatelliteObject = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  const params = satelliteMakerParamsSchema.safeParse(req.params);
+
+  if (!params.success) {
+    return res.status(400).json({
+      error: "Invalid satellite deletion request",
+      issues: params.error.issues,
+    });
+  }
+
+  try {
+    await removeCommissionedSatellite(params.data.noradCatId, req.authUserId!);
+    return res.status(204).send();
+  } catch (error) {
+    if (error instanceof CommissionedSatelliteNotFoundError) {
+      return res.status(404).json({
+        error: error.message,
+        norad_cat_id: error.noradCatId,
+      });
     }
 
     return next(error);

@@ -1,6 +1,7 @@
 import { mapWithConcurrency } from "../../../helpers/mapWithConcurrency.ts";
 import { getLatestSatelliteTlesByNoradIds } from "../repositories/satelite-orbit.repository.ts";
 import {
+  deleteCommissionedSatellite,
   findCommissionedSatellites,
   insertCommissionedSatellite,
   reserveCommissionedSatelliteNoradId,
@@ -34,6 +35,13 @@ export class SatelliteAlreadyCommissionedError extends Error {
   constructor(public readonly noradCatId: number) {
     super(`A satellite with NORAD ID ${noradCatId} already exists`);
     this.name = "SatelliteAlreadyCommissionedError";
+  }
+}
+
+export class CommissionedSatelliteNotFoundError extends Error {
+  constructor(public readonly noradCatId: number) {
+    super(`Created satellite with NORAD ID ${noradCatId} was not found`);
+    this.name = "CommissionedSatelliteNotFoundError";
   }
 }
 
@@ -224,4 +232,9 @@ export const getCommissionedSatellites = async (clerkUserId: string): Promise<Sa
       orbital_period_minutes: row.orbital_period_minutes,
     };
   });
+};
+
+export const removeCommissionedSatellite = async (noradCatId: number, clerkUserId: string): Promise<void> => {
+  const deleted = await deleteCommissionedSatellite(noradCatId, clerkUserId);
+  if (!deleted) throw new CommissionedSatelliteNotFoundError(noradCatId);
 };

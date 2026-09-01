@@ -14,6 +14,7 @@ import type { SatelliteMakerRequest } from "../api";
 import {
   useCommissionedSatellites,
   useSatelliteCommission,
+  useSatelliteDeletion,
   useSatellitePreview,
 } from "../hooks/use-satellite-maker";
 import { useCurrentSatelliteStates } from "@/features/live-tracking/hooks/use-current-satellite-states";
@@ -53,6 +54,7 @@ export function SatelliteMakerPage() {
   const featuredObject = useMemo(() => toFeaturedGlobeObject(config, orbit), [config, orbit]);
   const preview = useSatellitePreview();
   const commission = useSatelliteCommission();
+  const deletion = useSatelliteDeletion();
   const auth = useOrbitAuth();
   const commissionedSatellites = useCommissionedSatellites();
   const currentStates = useCurrentSatelliteStates(100);
@@ -187,6 +189,7 @@ export function SatelliteMakerPage() {
           commissionedSatellites={auth.isSignedIn ? commissionedSatellites.data ?? [] : []}
           isLoadingCommissioned={commissionedSatellites.isLoading}
           onRemove={removeDraft}
+          onDeleteCommissioned={(noradCatId) => deletion.mutateAsync(noradCatId).then(() => undefined)}
         />
       </main>
     </AppShell>

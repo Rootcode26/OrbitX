@@ -104,7 +104,15 @@ const commissionedSatellitesQuery = `
     SELECT id FROM user_details WHERE clerk_user_id = $1
   )
   ORDER BY satellite.created_at DESC
-  LIMIT 100
+`;
+
+const deleteCommissionedSatelliteQuery = `
+  DELETE FROM satellites satellite
+  USING user_details owner_user
+  WHERE satellite.norad_cat_id = $1
+    AND satellite.created_by_user_id = owner_user.id
+    AND owner_user.clerk_user_id = $2
+  RETURNING satellite.norad_cat_id
 `;
 
 const objectTypes: Record<SatelliteMakerRequest["object_type"], "PAY" | "R/B" | "DEB"> = {
@@ -191,4 +199,12 @@ export const insertCommissionedSatellite = async (request: SatelliteMakerRequest
 export const findCommissionedSatellites = async (clerkUserId: string): Promise<SavedMakerSatelliteDatabaseRow[]> => {
   const result = await db.query<SavedMakerSatelliteDatabaseRow>(commissionedSatellitesQuery, [clerkUserId]);
   return result.rows;
+};
+
+export const deleteCommissionedSatellite = async (noradCatId: number, clerkUserId: string): Promise<boolean> => {
+  const result = await db.query<{ norad_cat_id: number }>(deleteCommissionedSatelliteQuery, [
+    noradCatId,
+    clerkUserId,
+  ]);
+  return (result.rowCount ?? 0) > 0;
 };

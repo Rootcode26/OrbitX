@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useOrbitAuth } from "@/providers/auth-provider";
 import {
   commissionSatellite,
+  deleteCommissionedSatellite,
   fetchCommissionedSatellites,
   previewSatellite,
   type SavedMakerSatellite,
@@ -78,6 +79,51 @@ export function useSatelliteCommission() {
       ]);
       await queryClient.invalidateQueries({ queryKey: commissionedSatellitesQueryKey });
       await queryClient.invalidateQueries({ queryKey: ["satellite-catalog"] });
+    },
+  });
+}
+
+export function useSatelliteDeletion() {
+  const auth = useOrbitAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationKey: ["satellite-maker", "delete"],
+    mutationFn: async (noradCatId: number) => {
+      const token = await auth.getToken();
+      if (!token) throw new Error("Authentication required");
+      await deleteCommissionedSatellite(token, noradCatId);
+      return noradCatId;
+    },
+    onMutate: async (noradCatId) => {
+      await queryClient.cancelQueries({ queryKey: commissionedSatellitesQueryKey });
+      const previous = queryClient.getQueryData<SavedMakerSatellite[]>(commissionedSatellitesQueryKey);
+      queryClient.setQueryData<SavedMakerSatellite[]>(commissionedSatellitesQueryKey, (current = []) =>
+        current.filter((satellite) => satellite.norad_cat_id !== noradCatId),
+      );
+      return { previous };
+    },
+    onError: (_error, _noradCatId, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(commissionedSatellitesQueryKey, context.previous);
+      }
+    },
+    onSettled: async (_data, _error, noradCatId) => {
+      queryClient.removeQueries({ queryKey: ["satellite-catalog-item", noradCatId] });
+      queryClient.removeQueries({ queryKey: ["satellite-state", noradCatId] });
+      queryClient.removeQueries({ queryKey: ["satellite-history", noradCatId] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: commissionedSatellitesQueryKey }),
+        queryClient.invalidateQueries({ queryKey: ["satellite-catalog"] }),
+        queryClient.invalidateQueries({ queryKey: ["satellite-catalog-options"] }),
+        queryClient.invalidateQueries({ queryKey: ["current-satellite-states"] }),
+        queryClient.invalidateQueries({ queryKey: ["conjunction-events"] }),
+        queryClient.invalidateQueries({ queryKey: ["conjunction-analytics"] }),
+        queryClient.invalidateQueries({ queryKey: ["operations-alerts"] }),
+        queryClient.invalidateQueries({ queryKey: ["wishlist"] }),
+        queryClient.invalidateQueries({ queryKey: ["overview"] }),
+        queryClient.invalidateQueries({ queryKey: ["satellite-analytics"] }),
+      ]);
     },
   });
 }

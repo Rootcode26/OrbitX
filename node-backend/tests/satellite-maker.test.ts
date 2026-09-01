@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { buildMakerTle, deriveMakerOrbit } from "../src/modules/satelites/services/tle-builder.services.ts";
 import { satelliteMakerRequestSchema } from "../src/modules/satelites/validation/satellite-maker.validation.ts";
+import { satelliteMakerParamsSchema } from "../src/modules/satelites/validation/satellite-maker.validation.ts";
 
 const request = satelliteMakerRequestSchema.parse({
   object_name: "AURORA-1",
@@ -55,4 +56,10 @@ test("maker limits comparison screening to twenty satellites", () => {
   });
 
   assert.equal(result.success, false);
+});
+
+test("maker deletion accepts a positive NORAD ID route parameter", () => {
+  assert.deepEqual(satelliteMakerParamsSchema.parse({ noradCatId: "90001" }), { noradCatId: 90001 });
+  assert.equal(satelliteMakerParamsSchema.safeParse({ noradCatId: "invalid" }).success, false);
+  assert.equal(satelliteMakerParamsSchema.safeParse({ noradCatId: "-1" }).success, false);
 });

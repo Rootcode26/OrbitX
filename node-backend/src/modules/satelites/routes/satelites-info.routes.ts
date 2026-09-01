@@ -21,6 +21,7 @@ import {
 import {
   commissionSatelliteObject,
   createSatellitePreview,
+  deleteCommissionedSatelliteObject,
   listCommissionedSatelliteObjects,
 } from "../controllers/satellite-maker.controllers.ts";
 import {
@@ -69,6 +70,7 @@ router.get("/maker/commissioned", requireClerkAuth, listCommissionedSatelliteObj
 router.get("/:noradCatId/history", getSatelliteHistoryRecords);
 router.post("/maker/preview", requireClerkAuth, createSatellitePreview);
 router.post("/maker/commission", requireClerkAuth, commissionSatelliteObject);
+router.delete("/maker/commissioned/:noradCatId", requireClerkAuth, deleteCommissionedSatelliteObject);
 router.post("/finder/compare", requireClerkAuth, compareSatelliteFinderSelection);
 router.post("/conjunctions/screen", requireClerkAuth, screenSatelliteFinderCandidates);
 router.post("/conjunction-data", requireClerkAuth, getConjunctionData);
