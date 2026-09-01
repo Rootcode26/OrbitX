@@ -6,7 +6,7 @@ import type { ConjunctionRiskLevel } from "./types";
 export function classifySeparationRisk(separationKm: number): ConjunctionRiskLevel {
   if (!Number.isFinite(separationKm) || separationKm < 0) return "LOW";
   if (separationKm < 1) return "CRITICAL";
-  if (separationKm < 2.5) return "HIGH";
+  if (separationKm < 5) return "HIGH";
   if (separationKm < 10) return "MEDIUM";
   return "LOW";
 }

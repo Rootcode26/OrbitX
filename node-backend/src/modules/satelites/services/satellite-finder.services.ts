@@ -67,7 +67,7 @@ export const compareSatelliteFinderObjects = async (request: SatelliteFinderComp
         step_seconds: comparisonData.step_seconds,
         include_separation_profile: request.include_separation_profile ?? false,
       };
-      await recordConjunctionResult(checkRequest, result);
+      const eventId = await recordConjunctionResult(checkRequest, result);
       // Surface the same normalized risk that gets persisted, so the check
       // response carries a typed verdict instead of an opaque raw payload.
       const normalized = normalizeConjunctionResult(checkRequest, result);
@@ -76,6 +76,8 @@ export const compareSatelliteFinderObjects = async (request: SatelliteFinderComp
         success: true as const,
         satellite: toFinderObject(satellite),
         result,
+        stored: eventId !== null,
+        event_id: eventId,
         risk: {
           risk_level: normalized.risk_level,
           risk_score: normalized.risk_score,
@@ -95,7 +97,13 @@ export const compareSatelliteFinderObjects = async (request: SatelliteFinderComp
 
   const comparisons = outcomes
     .filter((outcome) => outcome.success)
-    .map((outcome) => ({ satellite: outcome.satellite, result: outcome.result, risk: outcome.risk }));
+    .map((outcome) => ({
+      satellite: outcome.satellite,
+      result: outcome.result,
+      risk: outcome.risk,
+      stored: outcome.stored,
+      event_id: outcome.event_id,
+    }));
   const errors = outcomes
     .filter((outcome) => !outcome.success)
     .map((outcome) => ({ satellite: outcome.satellite, message: outcome.message }));

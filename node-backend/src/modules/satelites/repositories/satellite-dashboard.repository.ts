@@ -69,7 +69,7 @@ const overviewSummaryQuery = `
           >= CURRENT_TIMESTAMP - INTERVAL '1 day'
         AND COALESCE(tca, NULLIF(raw_result->>'closest_approach_time_utc', '')::timestamptz)
           < CURRENT_TIMESTAMP + INTERVAL '1 day'
-        AND (risk_level IN ('CRITICAL', 'HIGH') OR risk_score >= 60)
+        AND risk_level IN ('CRITICAL', 'HIGH')
         AND id IN (${latestConjunctionEventIdsSql})
     ) AS high_risk_conjunctions,
     (

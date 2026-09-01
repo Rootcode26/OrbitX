@@ -34,6 +34,7 @@ export function SatelliteFinderPage() {
   const nearby = useNearbySatellites(selectedNoradId, currentPage, pageSize);
   const screening = useSatelliteFinderComparison();
   const result = nearby.data?.primary_satellite.norad_cat_id === selectedNoradId ? nearby.data : null;
+  const storedScreenings = screening.data?.comparisons.filter((comparison) => comparison.stored).length ?? 0;
 
   const globeObjects = useMemo(() => {
     if (!result) return [];
@@ -96,10 +97,21 @@ export function SatelliteFinderPage() {
                 Propagate and persist the {result.satellites.length} nearby objects shown on this page.
               </p>
               {screening.isSuccess ? (
-                <p className="mt-1.5 text-[10px] text-nominal">
-                  {screening.data.completed} of {screening.data.requested} checks saved
-                  {screening.data.failed > 0 ? ` · ${screening.data.failed} failed` : ""}. The Conjunctions page has been refreshed.
-                </p>
+                <div className="mt-1.5 space-y-1 text-[10px]">
+                  <p className={storedScreenings > 0 ? "text-nominal" : "text-text-secondary"}>
+                    {screening.data.completed} calculated · {storedScreenings} stored
+                    {screening.data.failed > 0 ? ` · ${screening.data.failed} failed` : ""}.
+                  </p>
+                  {storedScreenings === 0 ? (
+                    <p className="text-text-tertiary">
+                      Nothing qualified for storage: Python must return a TCA inside 7 days and a minimum separation of 500 km or less.
+                    </p>
+                  ) : (
+                    <p className="text-text-tertiary">
+                      Stored results refreshed Alerts; results with TCA within ±24 hours also appear in Conjunctions.
+                    </p>
+                  )}
+                </div>
               ) : screening.isError ? (
                 <p className="mt-1.5 text-[10px] text-critical">
                   Screening failed. No successful result was hidden by the UI cache.

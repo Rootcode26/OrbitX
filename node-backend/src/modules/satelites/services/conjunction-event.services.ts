@@ -75,7 +75,7 @@ const deriveRiskLevel = (result: ConjunctionCheckResponse, riskScore: number | n
     // same distance bands as the fallback classifier for those contradictions.
     if (explicitRisk === "CLEAR" && minimumSeparationKm !== null && minimumSeparationKm <= 500) {
       if (minimumSeparationKm < 1) return "CRITICAL";
-      if (minimumSeparationKm < 2.5) return "HIGH";
+      if (minimumSeparationKm < 5) return "HIGH";
       if (minimumSeparationKm < 10) return "MEDIUM";
       return "LOW";
     }
@@ -91,7 +91,7 @@ const deriveRiskLevel = (result: ConjunctionCheckResponse, riskScore: number | n
 
   if (minimumSeparationKm !== null) {
     if (minimumSeparationKm < 1) return "CRITICAL";
-    if (minimumSeparationKm < 2.5) return "HIGH";
+    if (minimumSeparationKm < 5) return "HIGH";
     if (minimumSeparationKm < 10) return "MEDIUM";
     return "LOW";
   }

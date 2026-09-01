@@ -11,7 +11,8 @@ test("classifies separation into the backend risk bands", () => {
 
 test("uses exclusive upper bounds at the band edges", () => {
   assert.equal(classifySeparationRisk(1), "HIGH");
-  assert.equal(classifySeparationRisk(2.5), "MEDIUM");
+  assert.equal(classifySeparationRisk(4.99), "HIGH");
+  assert.equal(classifySeparationRisk(5), "MEDIUM");
   assert.equal(classifySeparationRisk(10), "LOW");
 });
 

@@ -38,13 +38,9 @@ const latestConjunctionEventIdsSql = `
 const effectiveTcaSql = "COALESCE(event.tca, NULLIF(event.raw_result->>'closest_approach_time_utc', '')::timestamptz)";
 const effectiveRiskLevelSql = `CASE
   WHEN event.risk_level = 'CLEAR' AND event.minimum_separation_km IS NOT NULL AND event.minimum_separation_km < 1 THEN 'CRITICAL'
-  WHEN event.risk_level = 'CLEAR' AND event.minimum_separation_km IS NOT NULL AND event.minimum_separation_km < 2.5 THEN 'HIGH'
+  WHEN event.risk_level = 'CLEAR' AND event.minimum_separation_km IS NOT NULL AND event.minimum_separation_km < 5 THEN 'HIGH'
   WHEN event.risk_level = 'CLEAR' AND event.minimum_separation_km IS NOT NULL AND event.minimum_separation_km < 10 THEN 'MEDIUM'
   WHEN event.risk_level = 'CLEAR' AND event.minimum_separation_km IS NOT NULL AND event.minimum_separation_km <= ${CONJUNCTION_ALERT_MAX_SEPARATION_KM} THEN 'LOW'
-  WHEN event.risk_score >= 80 THEN 'CRITICAL'
-  WHEN event.risk_score >= 60 THEN 'HIGH'
-  WHEN event.risk_score >= 40 THEN 'MEDIUM'
-  WHEN event.risk_score > 0 THEN 'LOW'
   ELSE event.risk_level
 END`;
 
@@ -216,10 +212,10 @@ const dailyConjunctionMetricsQuery = `
     SELECT
       computed_at,
       CASE
-        WHEN risk_score >= 80 THEN 'CRITICAL'
-        WHEN risk_score >= 60 THEN 'HIGH'
-        WHEN risk_score >= 40 THEN 'MEDIUM'
-        WHEN risk_score > 0 THEN 'LOW'
+        WHEN risk_level = 'CLEAR' AND minimum_separation_km < 1 THEN 'CRITICAL'
+        WHEN risk_level = 'CLEAR' AND minimum_separation_km < 5 THEN 'HIGH'
+        WHEN risk_level = 'CLEAR' AND minimum_separation_km < 10 THEN 'MEDIUM'
+        WHEN risk_level = 'CLEAR' AND minimum_separation_km <= ${CONJUNCTION_ALERT_MAX_SEPARATION_KM} THEN 'LOW'
         ELSE risk_level
       END AS risk_level
     FROM conjunction_events
@@ -272,10 +268,10 @@ const riskDistributionQuery = `
   WITH distribution AS (
     SELECT
       CASE
-        WHEN risk_score >= 80 THEN 'CRITICAL'
-        WHEN risk_score >= 60 THEN 'HIGH'
-        WHEN risk_score >= 40 THEN 'MEDIUM'
-        WHEN risk_score > 0 THEN 'LOW'
+        WHEN risk_level = 'CLEAR' AND minimum_separation_km < 1 THEN 'CRITICAL'
+        WHEN risk_level = 'CLEAR' AND minimum_separation_km < 5 THEN 'HIGH'
+        WHEN risk_level = 'CLEAR' AND minimum_separation_km < 10 THEN 'MEDIUM'
+        WHEN risk_level = 'CLEAR' AND minimum_separation_km <= ${CONJUNCTION_ALERT_MAX_SEPARATION_KM} THEN 'LOW'
         ELSE risk_level
       END AS risk_level,
       COUNT(*)::integer AS count
@@ -283,10 +279,10 @@ const riskDistributionQuery = `
     WHERE computed_at >= CURRENT_TIMESTAMP - ($1::text || ' days')::interval
       AND id IN (${latestConjunctionEventIdsSql})
     GROUP BY CASE
-      WHEN risk_score >= 80 THEN 'CRITICAL'
-      WHEN risk_score >= 60 THEN 'HIGH'
-      WHEN risk_score >= 40 THEN 'MEDIUM'
-      WHEN risk_score > 0 THEN 'LOW'
+      WHEN risk_level = 'CLEAR' AND minimum_separation_km < 1 THEN 'CRITICAL'
+      WHEN risk_level = 'CLEAR' AND minimum_separation_km < 5 THEN 'HIGH'
+      WHEN risk_level = 'CLEAR' AND minimum_separation_km < 10 THEN 'MEDIUM'
+      WHEN risk_level = 'CLEAR' AND minimum_separation_km <= ${CONJUNCTION_ALERT_MAX_SEPARATION_KM} THEN 'LOW'
       ELSE risk_level
     END
   ),

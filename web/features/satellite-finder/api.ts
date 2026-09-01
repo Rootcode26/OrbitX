@@ -20,7 +20,19 @@ export interface SatelliteFinderComparisonResult {
   requested: number;
   completed: number;
   failed: number;
-  comparisons: { satellite: SatelliteFinderObject; result: Record<string, unknown> }[];
+  comparisons: {
+    satellite: SatelliteFinderObject;
+    result: Record<string, unknown>;
+    stored: boolean;
+    event_id: string | null;
+    risk: {
+      risk_level: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "CLEAR";
+      risk_score: number | null;
+      minimum_separation_km: number | null;
+      relative_velocity_km_s: number | null;
+      tca: string | null;
+    };
+  }[];
   errors: { satellite: SatelliteFinderObject; message: string }[];
 }
 

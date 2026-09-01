@@ -58,6 +58,8 @@ export interface SatelliteFinderComparisonResult {
   satellite: SatelliteFinderObject;
   result: ConjunctionCheckResponse;
   risk: SatelliteFinderComparisonRisk;
+  stored: boolean;
+  event_id: string | null;
 }
 
 export interface SatelliteFinderComparisonError {

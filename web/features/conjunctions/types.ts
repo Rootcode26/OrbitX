@@ -197,6 +197,8 @@ export interface ConjunctionScreenComparison {
   satellite: ConjunctionEndpointObject;
   result: Record<string, unknown>;
   risk: ConjunctionScreenComparisonRisk;
+  stored: boolean;
+  event_id: string | null;
 }
 
 export interface ConjunctionScreenResult {
