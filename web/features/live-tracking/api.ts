@@ -1,5 +1,6 @@
 import { requestJson } from "@/lib/api/client";
 import type { GlobeObject } from "@/features/globe/types";
+import { orbitRadiusFromAltitudeKm } from "@/features/globe/orbit-display-scale";
 import type {
   CurrentSatelliteStateApiRecord,
   CurrentSatelliteStateResponse,
@@ -48,7 +49,7 @@ export function toGlobeObject(state: CurrentSatelliteStatesResponse["data"]["sta
     id: state.norad_cat_id,
     name: state.name,
     objectClass,
-    orbitRadius: 1 + Math.max(state.height_km, 0) / 6371,
+    orbitRadius: orbitRadiusFromAltitudeKm(state.height_km),
     inclination: state.inclination_degrees,
     raan: state.raan_degrees,
     argumentOfPerigee: 0,

@@ -1,14 +1,14 @@
 "use client";
 
 import { Canvas } from "@react-three/fiber";
-import { Line, OrbitControls, Stars } from "@react-three/drei";
+import { Line, OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
+import { formatDistance } from "../formatters";
 import type { ConjunctionEvent, ConjunctionObject } from "../types";
 import { fitHalfKm, type EncounterModel, type Vec3 } from "../encounter-model";
 
 const VIEW_HALF = 2.4;
 const UP = new THREE.Vector3(0, 1, 0);
-const FORWARD = new THREE.Vector3(1, 0, 0);
 
 const riskHex: Record<ConjunctionEvent["risk"], number> = {
   CRITICAL: 0xe0674f,
@@ -40,129 +40,78 @@ function toScene(point: Vec3, midpoint: Vec3, scale: number) {
   );
 }
 
-// Velocity vector as a line + cone, drawn in scene units so it stays a fixed
-// on-screen size regardless of the current zoom.
 function VelocityArrow({ origin, direction, hex }: { origin: THREE.Vector3; direction: Vec3; hex: number }) {
-  const dir = new THREE.Vector3(direction.x, direction.y, direction.z);
-  if (dir.lengthSq() === 0) return null;
-  dir.normalize();
-  const tip = origin.clone().add(dir.clone().multiplyScalar(0.9));
-  const quaternion = new THREE.Quaternion().setFromUnitVectors(UP, dir);
+  const normalized = new THREE.Vector3(direction.x, direction.y, direction.z);
+  if (normalized.lengthSq() === 0) return null;
+
+  normalized.normalize();
+  const tip = origin.clone().add(normalized.clone().multiplyScalar(0.62));
+  const quaternion = new THREE.Quaternion().setFromUnitVectors(UP, normalized);
+
   return (
     <>
-      <Line points={[origin, tip]} color={hex} lineWidth={2} />
+      <Line points={[origin, tip]} color={hex} lineWidth={1.2} transparent opacity={0.72} />
       <mesh position={tip} quaternion={quaternion}>
-        <coneGeometry args={[0.05, 0.16, 10]} />
-        <meshBasicMaterial color={hex} />
+        <coneGeometry args={[0.025, 0.08, 12]} />
+        <meshBasicMaterial color={hex} transparent opacity={0.82} />
       </mesh>
     </>
   );
 }
 
-function PayloadModel({ hex }: { hex: number }) {
+function TrackingMarker({ position, hex }: { position: THREE.Vector3; hex: number }) {
   return (
-    <>
+    <group position={position}>
       <mesh>
-        <boxGeometry args={[0.2, 0.14, 0.14]} />
-        <meshStandardMaterial color={hex} metalness={0.72} roughness={0.28} emissive={hex} emissiveIntensity={0.12} />
+        <sphereGeometry args={[0.055, 24, 24]} />
+        <meshStandardMaterial color={0xe5edf2} emissive={hex} emissiveIntensity={0.48} metalness={0.35} roughness={0.38} />
       </mesh>
-      <mesh position={[0.12, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
-        <coneGeometry args={[0.065, 0.12, 16]} />
-        <meshStandardMaterial color={0xd9e3e9} metalness={0.8} roughness={0.22} />
-      </mesh>
-      {[-0.29, 0.29].map((z) => (
-        <group key={z} position={[0, 0, z]}>
-          <mesh>
-            <boxGeometry args={[0.36, 0.018, 0.2]} />
-            <meshStandardMaterial color={0x193c62} emissive={0x285d8d} emissiveIntensity={0.24} metalness={0.25} roughness={0.38} />
-          </mesh>
-          <Line points={[[-0.18, 0.011, 0], [0.18, 0.011, 0]]} color={0x6f9bc0} lineWidth={0.5} transparent opacity={0.65} />
-        </group>
-      ))}
-      <mesh position={[-0.12, 0.11, 0]}>
-        <cylinderGeometry args={[0.045, 0.055, 0.06, 16]} />
-        <meshStandardMaterial color={0x9dafbc} metalness={0.7} roughness={0.3} />
-      </mesh>
-    </>
-  );
-}
-
-function RocketBodyModel({ hex }: { hex: number }) {
-  return (
-    <group rotation={[0, 0, -Math.PI / 2]}>
       <mesh>
-        <cylinderGeometry args={[0.09, 0.075, 0.42, 18]} />
-        <meshStandardMaterial color={hex} metalness={0.76} roughness={0.32} />
+        <sphereGeometry args={[0.095, 18, 18]} />
+        <meshBasicMaterial color={hex} transparent opacity={0.08} depthWrite={false} />
       </mesh>
-      <mesh position={[0, 0.23, 0]}>
-        <coneGeometry args={[0.075, 0.08, 18]} />
-        <meshStandardMaterial color={0xc4ccd1} metalness={0.8} roughness={0.25} />
+      <mesh>
+        <ringGeometry args={[0.105, 0.112, 40]} />
+        <meshBasicMaterial color={hex} transparent opacity={0.58} side={THREE.DoubleSide} depthWrite={false} />
       </mesh>
-      <Line points={[[0, -0.2, -0.091], [0, 0.2, -0.091]]} color={0xe1e7ea} lineWidth={0.6} transparent opacity={0.65} />
     </group>
   );
 }
 
-function DebrisModel({ hex }: { hex: number }) {
-  return (
-    <mesh rotation={[0.45, 0.2, 0.7]}>
-      <dodecahedronGeometry args={[0.14, 0]} />
-      <meshStandardMaterial color={hex} metalness={0.65} roughness={0.55} flatShading />
-    </mesh>
-  );
-}
-
-function ObjectMarker({ position, direction, hex, type }: {
+function TcaMarker({ position, scale, risk }: {
   position: THREE.Vector3;
-  direction: Vec3;
-  hex: number;
-  type: ConjunctionObject["objectType"];
+  scale: number;
+  risk: ConjunctionEvent["risk"];
 }) {
-  const vector = new THREE.Vector3(direction.x, direction.y, direction.z);
-  const quaternion = vector.lengthSq() > 0
-    ? new THREE.Quaternion().setFromUnitVectors(FORWARD, vector.normalize())
-    : new THREE.Quaternion();
-
   return (
-    <group position={position} quaternion={quaternion}>
+    <group position={position} scale={1 / scale}>
       <mesh>
-        <sphereGeometry args={[0.23, 20, 20]} />
-        <meshBasicMaterial color={hex} transparent opacity={0.045} depthWrite={false} />
+        <ringGeometry args={[0.075, 0.084, 40]} />
+        <meshBasicMaterial color={riskHex[risk]} transparent opacity={0.72} side={THREE.DoubleSide} />
       </mesh>
-      <mesh>
-        <ringGeometry args={[0.18, 0.195, 32]} />
-        <meshBasicMaterial color={hex} transparent opacity={0.32} side={THREE.DoubleSide} depthWrite={false} />
-      </mesh>
-      {type === "PAYLOAD" ? <PayloadModel hex={hex} /> : null}
-      {type === "ROCKET BODY" ? <RocketBodyModel hex={hex} /> : null}
-      {type === "DEBRIS" ? <DebrisModel hex={hex} /> : null}
-      {type === "UNKNOWN" ? (
-        <mesh rotation={[0.35, 0.45, 0]}>
-          <octahedronGeometry args={[0.14, 0]} />
-          <meshStandardMaterial color={hex} metalness={0.4} roughness={0.5} wireframe />
-        </mesh>
-      ) : null}
+      <Line points={[[-0.15, 0, 0], [-0.095, 0, 0]]} color={riskHex[risk]} lineWidth={0.8} transparent opacity={0.5} />
+      <Line points={[[0.095, 0, 0], [0.15, 0, 0]]} color={riskHex[risk]} lineWidth={0.8} transparent opacity={0.5} />
+      <Line points={[[0, -0.15, 0], [0, -0.095, 0]]} color={riskHex[risk]} lineWidth={0.8} transparent opacity={0.5} />
+      <Line points={[[0, 0.095, 0], [0, 0.15, 0]]} color={riskHex[risk]} lineWidth={0.8} transparent opacity={0.5} />
     </group>
   );
 }
 
-function EncounterScene({ model, offsetMinutes, risk, objectAType, objectBType }: SceneProps) {
-  // ---- static geometry (depends only on the model) --------------------
-  // Point arrays are stable across scrubbing, so the line geometry is never
-  // rebuilt while the slider moves — only the framing group transform changes.
-  const halfMinutes = model.hasTrack ? model.trackHalfMinutes : 60;
-  const sampleCount = model.hasTrack ? 40 : 2;
-  const trackMinutesList = Array.from(
+function EncounterScene({ model, offsetMinutes, risk }: SceneProps) {
+  // Only display the real dense-track window when it exists. Fallback paths
+  // are limited to the same ±10-minute UI interval and remain clearly linear.
+  const halfMinutes = model.hasTrack ? model.trackHalfMinutes : 10;
+  const sampleCount = model.hasTrack ? 80 : 2;
+  const trackMinutes = Array.from(
     { length: sampleCount },
-    (_unused, index) => -halfMinutes + (index / (sampleCount - 1)) * 2 * halfMinutes,
+    (_unused, index) => -halfMinutes + (index / (sampleCount - 1)) * halfMinutes * 2,
   );
-  const trackAkm = trackMinutesList.map((minutes) => toVecKm(model.positionA(minutes)));
-  const trackBkm = trackMinutesList.map((minutes) => toVecKm(model.positionB(minutes)));
-  const tcaAkm = toVecKm(model.positionA(0));
-  const tcaBkm = toVecKm(model.positionB(0));
-  const tcaMidKm = tcaAkm.clone().add(tcaBkm).multiplyScalar(0.5);
+  const trackA = trackMinutes.map((minutes) => toVecKm(model.positionA(minutes)));
+  const trackB = trackMinutes.map((minutes) => toVecKm(model.positionB(minutes)));
+  const tcaA = toVecKm(model.positionA(0));
+  const tcaB = toVecKm(model.positionB(0));
+  const tcaMidpoint = tcaA.clone().add(tcaB).multiplyScalar(0.5);
 
-  // ---- follow-cam framing (cheap, per offset) -------------------------
   const scale = VIEW_HALF / fitHalfKm(model, offsetMinutes);
   const midpoint = model.midpoint(offsetMinutes);
   const groupPosition: [number, number, number] = [
@@ -170,95 +119,97 @@ function EncounterScene({ model, offsetMinutes, risk, objectAType, objectBType }
     -midpoint.y * scale,
     -midpoint.z * scale,
   ];
-
-  // ---- moving markers (scene units, aligned with the framed group) ----
   const markerA = toScene(model.positionA(offsetMinutes), midpoint, scale);
   const markerB = toScene(model.positionB(offsetMinutes), midpoint, scale);
   const uncertaintyRadius = model.radialUncertaintyKm ? model.radialUncertaintyKm * scale : null;
 
   return (
-    <group rotation={[0.34, -0.5, 0]}>
-      {/* Orientation-only reference plane; computed geometry is never snapped to it. */}
-      <gridHelper args={[6, 18, 0x345367, 0x172b38]} rotation={[Math.PI / 2, 0, 0]} position={[0, 0, -0.14]} />
-      <Line points={[[-3, 0, -0.135], [3, 0, -0.135]]} color={0x54778d} lineWidth={0.8} transparent opacity={0.2} />
-      <Line points={[[0, -3, -0.135], [0, 3, -0.135]]} color={0x54778d} lineWidth={0.8} transparent opacity={0.2} />
-
-      {/* Static geometry, framed by the follow-cam group transform. */}
+    <group rotation={[0.26, -0.42, 0]}>
       <group scale={scale} position={groupPosition}>
-        <Line points={trackAkm} color={OBJECT_A_HEX} lineWidth={4.5} transparent opacity={0.08} />
-        <Line points={trackBkm} color={OBJECT_B_HEX} lineWidth={4.5} transparent opacity={0.08} />
-        <Line points={trackAkm} color={OBJECT_A_HEX} lineWidth={1.5} transparent opacity={0.72} />
-        <Line points={trackBkm} color={OBJECT_B_HEX} lineWidth={1.5} transparent opacity={0.72} />
-        <Line points={[tcaAkm, tcaBkm]} color={riskHex[risk]} lineWidth={2.2} />
-        <mesh position={tcaAkm} scale={1 / scale}><sphereGeometry args={[0.035, 12, 12]} /><meshBasicMaterial color={OBJECT_A_HEX} /></mesh>
-        <mesh position={tcaBkm} scale={1 / scale}><sphereGeometry args={[0.035, 12, 12]} /><meshBasicMaterial color={OBJECT_B_HEX} /></mesh>
-        <group position={tcaMidKm} scale={1 / scale}>
-          <mesh><ringGeometry args={[0.09, 0.105, 36]} /><meshBasicMaterial color={riskHex[risk]} transparent opacity={0.78} side={THREE.DoubleSide} /></mesh>
-          <mesh><ringGeometry args={[0.17, 0.175, 36]} /><meshBasicMaterial color={riskHex[risk]} transparent opacity={0.22} side={THREE.DoubleSide} /></mesh>
-          <Line points={[[-0.24, 0, 0], [-0.12, 0, 0]]} color={riskHex[risk]} lineWidth={1} transparent opacity={0.55} />
-          <Line points={[[0.12, 0, 0], [0.24, 0, 0]]} color={riskHex[risk]} lineWidth={1} transparent opacity={0.55} />
-          <Line points={[[0, -0.24, 0], [0, -0.12, 0]]} color={riskHex[risk]} lineWidth={1} transparent opacity={0.55} />
-          <Line points={[[0, 0.12, 0], [0, 0.24, 0]]} color={riskHex[risk]} lineWidth={1} transparent opacity={0.55} />
-        </group>
+        <Line points={trackA} color={OBJECT_A_HEX} lineWidth={1.35} transparent opacity={0.66} />
+        <Line points={trackB} color={OBJECT_B_HEX} lineWidth={1.35} transparent opacity={0.66} />
+        <Line points={[tcaA, tcaB]} color={riskHex[risk]} lineWidth={1.8} transparent opacity={0.88} />
+        <mesh position={tcaA} scale={1 / scale}>
+          <sphereGeometry args={[0.022, 12, 12]} />
+          <meshBasicMaterial color={OBJECT_A_HEX} />
+        </mesh>
+        <mesh position={tcaB} scale={1 / scale}>
+          <sphereGeometry args={[0.022, 12, 12]} />
+          <meshBasicMaterial color={OBJECT_B_HEX} />
+        </mesh>
+        <TcaMarker position={tcaMidpoint} scale={scale} risk={risk} />
       </group>
 
-      {/* Object A. */}
-      <ObjectMarker position={markerA} direction={model.velocityA} hex={OBJECT_A_HEX} type={objectAType} />
+      <TrackingMarker position={markerA} hex={OBJECT_A_HEX} />
+      <TrackingMarker position={markerB} hex={OBJECT_B_HEX} />
       <VelocityArrow origin={markerA} direction={model.velocityA} hex={OBJECT_A_HEX} />
+      <VelocityArrow origin={markerB} direction={model.velocityB} hex={OBJECT_B_HEX} />
+
       {uncertaintyRadius ? (
         <mesh position={markerA}>
-          <sphereGeometry args={[uncertaintyRadius, 24, 24]} />
-          <meshBasicMaterial color={OBJECT_A_HEX} transparent opacity={0.1} wireframe />
+          <sphereGeometry args={[uncertaintyRadius, 28, 20]} />
+          <meshBasicMaterial color={OBJECT_A_HEX} transparent opacity={0.07} wireframe depthWrite={false} />
         </mesh>
       ) : null}
 
-      {/* Object B. */}
-      <ObjectMarker position={markerB} direction={model.velocityB} hex={OBJECT_B_HEX} type={objectBType} />
-      <VelocityArrow origin={markerB} direction={model.velocityB} hex={OBJECT_B_HEX} />
-
-      {/* Live separation between the two objects. */}
-      <Line points={[markerA, markerB]} color={0x8fafc4} lineWidth={1} dashed dashSize={0.08} gapSize={0.06} transparent opacity={0.45} />
+      <Line
+        points={[markerA, markerB]}
+        color={0xaab8c2}
+        lineWidth={0.8}
+        dashed
+        dashSize={0.055}
+        gapSize={0.045}
+        transparent
+        opacity={0.42}
+      />
     </group>
   );
 }
 
+function formatObjectType(type: ConjunctionObject["objectType"]) {
+  return type.replace("_", " ");
+}
+
 export function EncounterScene3D(props: SceneProps) {
   return (
-    <div className="relative h-[340px] w-full">
+    <div className="relative h-[340px] w-full overflow-hidden bg-[#050608]">
       <Canvas
-        camera={{ position: [0, 1.4, 5.4], fov: 42 }}
+        camera={{ position: [0, 1.1, 5.5], fov: 40 }}
         dpr={[1, 1.5]}
-        gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
+        gl={{ antialias: true, alpha: false, powerPreference: "high-performance" }}
       >
-        <color attach="background" args={["#06090d"]} />
-        <fog attach="fog" args={["#06090d", 6.5, 15]} />
-        <ambientLight intensity={0.48} />
-        <hemisphereLight args={[0x779fc0, 0x080b10, 0.55]} />
-        <directionalLight position={[3, 4, 5]} intensity={1.35} color={0xfff0d2} />
-        <directionalLight position={[-4, -2, -3]} intensity={0.5} color={0x4b93bf} />
-        <pointLight position={[0, 0.5, 2.5]} intensity={0.35} color={0x91c4e5} />
-        <Stars radius={42} depth={24} count={650} factor={2} saturation={0.08} fade speed={0} />
+        <color attach="background" args={["#050608"]} />
+        <ambientLight intensity={0.5} />
+        <directionalLight position={[3, 4, 5]} intensity={0.9} color={0xf3f5f6} />
+        <directionalLight position={[-3, -2, 2]} intensity={0.22} color={0x668aa1} />
         <EncounterScene {...props} />
         <OrbitControls
           enablePan={false}
           enableDamping
           dampingFactor={0.08}
-          minDistance={3}
-          maxDistance={9}
-          rotateSpeed={0.5}
-          autoRotate
-          autoRotateSpeed={0.3}
+          minDistance={3.2}
+          maxDistance={8}
+          rotateSpeed={0.42}
         />
       </Canvas>
-      <div className="pointer-events-none absolute right-3 bottom-2 flex items-center gap-3 numeric text-[9px] text-text-tertiary">
-        <span><i className="mr-1 inline-block h-2 w-2 align-middle" style={{ background: `#${OBJECT_A_HEX.toString(16)}` }} />{props.objectAName}</span>
-        <span><i className="mr-1 inline-block h-2 w-2 align-middle" style={{ background: `#${OBJECT_B_HEX.toString(16)}` }} />{props.objectBName}</span>
+
+      <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between bg-gradient-to-b from-black/55 to-transparent px-3 py-2.5">
+        <div>
+          <div className="numeric text-[8.5px] font-semibold tracking-[0.12em] text-text-secondary">LOCAL ENCOUNTER FRAME</div>
+          <div className="mt-1 numeric text-[8px] text-text-tertiary">X relative velocity · Y miss axis · Z normal</div>
+        </div>
+        <div className="text-right">
+          <div className="text-[8.5px] text-text-tertiary">TCA miss vector</div>
+          <div className="numeric mt-0.5 text-[10px] font-medium text-text-secondary">{formatDistance(props.model.missKm)}</div>
+        </div>
       </div>
-      <div className="pointer-events-none absolute bottom-2 left-3 numeric text-[9px] text-text-tertiary">
-        drag to orbit · wheel to zoom
+
+      <div className="pointer-events-none absolute right-3 bottom-2.5 flex items-center gap-3 numeric text-[8.5px] text-text-tertiary">
+        <span><i className="mr-1.5 inline-block h-1.5 w-3 align-middle" style={{ background: `#${OBJECT_A_HEX.toString(16)}` }} />{props.objectAName} · {formatObjectType(props.objectAType)}</span>
+        <span><i className="mr-1.5 inline-block h-1.5 w-3 align-middle" style={{ background: `#${OBJECT_B_HEX.toString(16)}` }} />{props.objectBName} · {formatObjectType(props.objectBType)}</span>
       </div>
-      <div className="pointer-events-none absolute top-2 left-3 rounded-sm border border-white/10 bg-black/35 px-2 py-1 numeric text-[8.5px] tracking-[0.08em] text-text-tertiary backdrop-blur-sm">
-        LOCAL ENCOUNTER FRAME
+      <div className="pointer-events-none absolute bottom-2.5 left-3 numeric text-[8.5px] text-text-tertiary">
+        drag to rotate · wheel to zoom
       </div>
     </div>
   );

@@ -2,6 +2,7 @@ export type GlobeObjectClass = "active" | "inactive" | "debris" | "rocket" | "fo
 export type GlobeFilter = "satellites" | "debris" | "rocketBodies" | "orbits" | "labels";
 export type GlobeViewMode = "3D" | "2D";
 export type GlobeSimulationSpeed = 0.5 | 1 | 2;
+export type GlobeAltitudeDisplayScale = "expanded" | "unchanged";
 
 export interface GlobeObject {
   id: number;
@@ -25,6 +26,7 @@ export interface GlobeFilterState {
 }
 
 export interface OrbitalGlobeProps {
+  altitudeDisplayScale?: GlobeAltitudeDisplayScale;
   compact?: boolean;
   finder?: boolean;
   featuredObject?: GlobeObject;

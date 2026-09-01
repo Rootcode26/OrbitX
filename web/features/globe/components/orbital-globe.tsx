@@ -12,6 +12,7 @@ import type { FeatureCollection, Geometry } from "geojson";
 import type { GeometryCollection, Topology } from "topojson-specification";
 import { Icon } from "@/components/ui/icon";
 import { useGlobeObjects } from "../hooks/use-globe-objects";
+import { expandOrbitRadius } from "../orbit-display-scale";
 import type {
   GlobeFilter,
   GlobeFilterState,
@@ -324,6 +325,7 @@ function disposeObject(root: THREE.Object3D) {
 }
 
 export function OrbitalGlobe({
+  altitudeDisplayScale = "expanded",
   compact = false,
   finder = false,
   featuredObject,
@@ -333,7 +335,18 @@ export function OrbitalGlobe({
   onObjectSelect,
   objects: baseObjects = [],
 }: OrbitalGlobeProps = {}) {
-  const { objects, userObjectIds } = useGlobeObjects(baseObjects, featuredObject?.id);
+  const preserveMakerScale = altitudeDisplayScale === "unchanged";
+  const { objects: sourceObjects, userObjectIds } = useGlobeObjects(
+    baseObjects,
+    featuredObject?.id,
+    preserveMakerScale,
+  );
+  const objects = useMemo(
+    () => preserveMakerScale
+      ? sourceObjects
+      : sourceObjects.map((object) => ({ ...object, orbitRadius: expandOrbitRadius(object.orbitRadius) })),
+    [preserveMakerScale, sourceObjects],
+  );
   const effectiveVisibleObjectIds = useMemo(
     () => visibleObjectIds ? Array.from(new Set([...visibleObjectIds, ...userObjectIds])) : undefined,
     [visibleObjectIds, userObjectIds],

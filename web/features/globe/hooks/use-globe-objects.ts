@@ -3,11 +3,12 @@
 import { useMemo } from "react";
 import { useCommissionedSatellites } from "@/features/satellite-maker/hooks/use-satellite-maker";
 import type { SavedMakerSatellite } from "@/features/satellite-maker/api";
+import { orbitRadiusFromAltitudeKm } from "../orbit-display-scale";
 import type { GlobeObject } from "../types";
 
 const degreesToRadians = Math.PI / 180;
 
-function toGlobeObject(satellite: SavedMakerSatellite): GlobeObject {
+function toGlobeObject(satellite: SavedMakerSatellite, preserveMakerScale: boolean): GlobeObject {
   const altitudeKm = satellite.altitude_km ?? 500;
   const periodMinutes = satellite.orbital_period_minutes ?? 95;
   const objectClass: GlobeObject["objectClass"] = satellite.object_type === "DEBRIS"
@@ -20,7 +21,9 @@ function toGlobeObject(satellite: SavedMakerSatellite): GlobeObject {
     id: satellite.norad_cat_id,
     name: satellite.name,
     objectClass,
-    orbitRadius: Math.min(1.8, 1.12 + altitudeKm / 5000),
+    orbitRadius: preserveMakerScale
+      ? Math.min(1.8, 1.12 + altitudeKm / 5000)
+      : orbitRadiusFromAltitudeKm(altitudeKm),
     inclination: satellite.inclination_degrees ?? 0,
     raan: satellite.raan_degrees,
     argumentOfPerigee: satellite.argument_of_perigee_degrees,
@@ -31,18 +34,18 @@ function toGlobeObject(satellite: SavedMakerSatellite): GlobeObject {
   };
 }
 
-export function useGlobeObjects(baseObjects: GlobeObject[], featuredObjectId?: number) {
+export function useGlobeObjects(baseObjects: GlobeObject[], featuredObjectId?: number, preserveMakerScale = false) {
   const commissionedSatellites = useCommissionedSatellites();
 
   return useMemo(() => {
     const existingIds = new Set(baseObjects.map((object) => object.id));
     const userObjects = (commissionedSatellites.data ?? [])
       .filter((satellite) => satellite.norad_cat_id !== featuredObjectId && !existingIds.has(satellite.norad_cat_id))
-      .map(toGlobeObject);
+      .map((satellite) => toGlobeObject(satellite, preserveMakerScale));
 
     return {
       objects: [...baseObjects, ...userObjects],
       userObjectIds: userObjects.map((object) => object.id),
     };
-  }, [baseObjects, commissionedSatellites.data, featuredObjectId]);
+  }, [baseObjects, commissionedSatellites.data, featuredObjectId, preserveMakerScale]);
 }
