@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useOrbitAuth } from "@/providers/auth-provider";
+import { tleCatalogQueryKey } from "@/features/orbital-objects/hooks/use-tle-catalog";
 import {
   commissionSatellite,
   deleteCommissionedSatellite,
@@ -77,8 +78,15 @@ export function useSatelliteCommission() {
         savedSatellite,
         ...current.filter((item) => item.norad_cat_id !== savedSatellite.norad_cat_id),
       ]);
-      await queryClient.invalidateQueries({ queryKey: commissionedSatellitesQueryKey });
-      await queryClient.invalidateQueries({ queryKey: ["satellite-catalog"] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: commissionedSatellitesQueryKey }),
+        queryClient.invalidateQueries({ queryKey: ["satellite-catalog"] }),
+        queryClient.invalidateQueries({ queryKey: ["satellite-catalog-options"] }),
+        queryClient.invalidateQueries({ queryKey: tleCatalogQueryKey }),
+        queryClient.invalidateQueries({ queryKey: ["current-satellite-states"] }),
+        queryClient.invalidateQueries({ queryKey: ["overview"] }),
+        queryClient.invalidateQueries({ queryKey: ["satellite-analytics"] }),
+      ]);
     },
   });
 }
@@ -116,6 +124,7 @@ export function useSatelliteDeletion() {
         queryClient.invalidateQueries({ queryKey: commissionedSatellitesQueryKey }),
         queryClient.invalidateQueries({ queryKey: ["satellite-catalog"] }),
         queryClient.invalidateQueries({ queryKey: ["satellite-catalog-options"] }),
+        queryClient.invalidateQueries({ queryKey: tleCatalogQueryKey }),
         queryClient.invalidateQueries({ queryKey: ["current-satellite-states"] }),
         queryClient.invalidateQueries({ queryKey: ["conjunction-events"] }),
         queryClient.invalidateQueries({ queryKey: ["conjunction-analytics"] }),

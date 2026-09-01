@@ -18,6 +18,18 @@ function buildUrl(path: string): string {
   return `${API_BASE_URL}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
+type AuthTokenGetter = () => Promise<string | null>;
+
+// Registered by the auth provider so every request can carry the signed-in
+// user's token. This lets otherwise-public read endpoints resolve the caller
+// (owner-or-public visibility) — e.g. so owners see their own commissioned
+// satellites in the catalog, globe, and history.
+let authTokenGetter: AuthTokenGetter | null = null;
+
+export function setApiTokenGetter(getter: AuthTokenGetter | null): void {
+  authTokenGetter = getter;
+}
+
 function parseErrorPayload(text: string): ApiErrorPayload | null {
   if (!text) return null;
 
@@ -38,6 +50,16 @@ async function request(
 
   if (init.body && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
+  }
+
+  // Attach the auth token unless the caller already set one explicitly.
+  if (!headers.has("Authorization") && authTokenGetter) {
+    try {
+      const token = await authTokenGetter();
+      if (token) headers.set("Authorization", `Bearer ${token}`);
+    } catch {
+      // Token retrieval failed — proceed unauthenticated (public data only).
+    }
   }
 
   const response = await fetch(buildUrl(path), {

@@ -9,6 +9,6 @@ export function useTleCatalog() {
   return useQuery({
     queryKey: tleCatalogQueryKey,
     queryFn: fetchTleCatalog,
-    staleTime: 10 * 60_000,
+    staleTime: 60_000,
   });
 }

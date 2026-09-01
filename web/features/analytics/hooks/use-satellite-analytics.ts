@@ -9,6 +9,6 @@ export function useSatelliteAnalytics() {
   return useQuery({
     queryKey: satelliteAnalyticsQueryKey,
     queryFn: fetchSatelliteAnalytics,
-    staleTime: 5 * 60_000,
+    staleTime: 60_000,
   });
 }

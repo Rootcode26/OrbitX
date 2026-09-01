@@ -1,9 +1,10 @@
 "use client";
 
-import { createContext, useContext, useMemo } from "react";
+import { createContext, useContext, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { ClerkProvider, useAuth } from "@clerk/nextjs";
 import type { ComponentProps } from "react";
+import { setApiTokenGetter } from "@/lib/api/client";
 import type { AuthContextValue, AuthProviderProps } from "./types";
 
 // Matches the OrbitX dark theme (see app/globals.css).
@@ -62,6 +63,14 @@ const AuthContext = createContext<AuthContextValue>(unavailableAuth);
 function ClerkAuthBridge({ children }: AuthProviderProps) {
   const router = useRouter();
   const { getToken, isLoaded, isSignedIn } = useAuth();
+
+  // Let the API client attach this user's token to every request so read
+  // endpoints resolve the caller (owner-or-public visibility).
+  useEffect(() => {
+    setApiTokenGetter(() => getToken());
+    return () => setApiTokenGetter(null);
+  }, [getToken]);
+
   const value = useMemo<AuthContextValue>(() => ({
     configured: true,
     isLoaded,
