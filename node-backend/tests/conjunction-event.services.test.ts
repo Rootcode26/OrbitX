@@ -53,13 +53,19 @@ test("provider risk is preserved regardless of miss distance", () => {
   assert.equal(result.risk_level, "LOW");
 });
 
-test("zero separation cannot be persisted as clear", () => {
+test("close separation cannot be persisted as clear", () => {
   const result = normalizeConjunctionResult(request, {
-    minimum_separation_km: 0,
+    minimum_separation_km: 5,
     risk_level: "CLEAR",
   });
 
-  assert.equal(result.risk_level, "CRITICAL");
+  assert.equal(result.risk_level, "MEDIUM");
+
+  const collision = normalizeConjunctionResult(request, {
+    minimum_separation_km: 0,
+    risk_level: "CLEAR",
+  });
+  assert.equal(collision.risk_level, "CRITICAL");
 });
 
 test("conjunction risk falls back to miss distance when no explicit score exists", () => {

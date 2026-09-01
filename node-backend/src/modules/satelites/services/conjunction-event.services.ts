@@ -67,11 +67,14 @@ const deriveRiskLevel = (result: ConjunctionCheckResponse, riskScore: number | n
   const explicitRisk = readString(result, ["risk_level", "risk", "verdict.risk_level", "data.risk_level"])?.toUpperCase();
 
   if (explicitRisk && ["CRITICAL", "HIGH", "MEDIUM", "LOW", "CLEAR"].includes(explicitRisk)) {
-    // A zero-distance encounter cannot be clear. Some provider responses carry
-    // a default CLEAR verdict while still returning the measured separation;
-    // prefer the physically unambiguous collision-risk classification here.
-    if (explicitRisk === "CLEAR" && minimumSeparationKm !== null && minimumSeparationKm < 1) {
-      return "CRITICAL";
+    // A close approach cannot be clear. Some provider responses carry a default
+    // CLEAR verdict while still returning the measured separation; use the
+    // same distance bands as the fallback classifier for those contradictions.
+    if (explicitRisk === "CLEAR" && minimumSeparationKm !== null && minimumSeparationKm <= 500) {
+      if (minimumSeparationKm < 1) return "CRITICAL";
+      if (minimumSeparationKm < 2.5) return "HIGH";
+      if (minimumSeparationKm < 10) return "MEDIUM";
+      return "LOW";
     }
     return explicitRisk as ConjunctionRiskLevel;
   }

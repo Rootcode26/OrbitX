@@ -42,7 +42,10 @@ const latestConjunctionEventIdsSql = `
 
 const effectiveTcaSql = "COALESCE(event.tca, NULLIF(event.raw_result->>'closest_approach_time_utc', '')::timestamptz)";
 const effectiveRiskLevelSql = `CASE
-  WHEN event.minimum_separation_km IS NOT NULL AND event.minimum_separation_km < 1 THEN 'CRITICAL'
+  WHEN event.risk_level = 'CLEAR' AND event.minimum_separation_km IS NOT NULL AND event.minimum_separation_km < 1 THEN 'CRITICAL'
+  WHEN event.risk_level = 'CLEAR' AND event.minimum_separation_km IS NOT NULL AND event.minimum_separation_km < 2.5 THEN 'HIGH'
+  WHEN event.risk_level = 'CLEAR' AND event.minimum_separation_km IS NOT NULL AND event.minimum_separation_km < 10 THEN 'MEDIUM'
+  WHEN event.risk_level = 'CLEAR' AND event.minimum_separation_km IS NOT NULL AND event.minimum_separation_km <= ${CONJUNCTION_ALERT_MAX_SEPARATION_KM} THEN 'LOW'
   WHEN event.risk_score >= 80 THEN 'CRITICAL'
   WHEN event.risk_score >= 60 THEN 'HIGH'
   WHEN event.risk_score >= 40 THEN 'MEDIUM'
