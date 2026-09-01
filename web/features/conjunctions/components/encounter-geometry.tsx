@@ -38,10 +38,13 @@ export function EncounterGeometry({ event }: { event: ConjunctionEvent }) {
       }
     >
       <div className="bg-well">
-        <div className="flex items-center justify-between px-4 pt-3 text-[10.5px] text-text-tertiary">
-          <div className="flex items-center gap-4">
-            <span><i className="mr-1.5 inline-block h-2 w-2 bg-accent" />{event.objectA.name}</span>
-            <span><i className="mr-1.5 inline-block h-2 w-2 bg-high" />{event.objectB.name}</span>
+        <div className="flex items-center justify-between gap-3 px-4 pt-3 text-[10.5px] text-text-tertiary">
+          <div className="flex min-w-0 items-center gap-4">
+            <span className="truncate"><i className="mr-1.5 inline-block h-2 w-2 bg-accent" />{event.objectA.name}</span>
+            <span className="truncate"><i className="mr-1.5 inline-block h-2 w-2 bg-high" />{event.objectB.name}</span>
+            <span className="hidden whitespace-nowrap rounded-sm border border-[var(--bd)] bg-black/15 px-2 py-0.5 numeric text-[8.5px] uppercase tracking-[0.08em] text-text-tertiary min-[900px]:inline-flex">
+              {model.hasTrack ? "propagated samples" : model.exact ? "TCA state vectors" : "metric reconstruction"}
+            </span>
           </div>
           <div className="flex border border-[var(--bd)]">
             {(["2D", "3D"] as ViewMode[]).map((mode) => (
@@ -67,10 +70,23 @@ export function EncounterGeometry({ event }: { event: ConjunctionEvent }) {
             risk={event.risk}
             objectAName={event.objectA.name}
             objectBName={event.objectB.name}
+            objectAType={event.objectA.objectType}
+            objectBType={event.objectB.objectType}
           />
         ) : (
-          <EncounterDiagram2D model={model} offsetMinutes={offsetMinutes} risk={event.risk} />
+          <EncounterDiagram2D
+            model={model}
+            offsetMinutes={offsetMinutes}
+            risk={event.risk}
+            objectAType={event.objectA.objectType}
+            objectBType={event.objectB.objectType}
+          />
         )}
+
+        <div className="flex items-center justify-between gap-3 border-t border-[var(--bd2)] px-4 py-1.5 text-[8.5px] text-text-tertiary">
+          <span>{model.hasTrack ? "Paths use supplied propagated samples" : model.exact ? "TCA positions are supplied · path extension is linear" : "Geometry reconstructed from supplied event metrics"}</span>
+          <span className="numeric hidden whitespace-nowrap min-[900px]:inline">generic markers enlarged · orientation shows velocity · geometry uniformly scaled</span>
+        </div>
 
         <div className="flex items-center gap-4 border-y border-[var(--bd)] px-4 py-2.5">
           <span className="numeric whitespace-nowrap text-[10.5px] text-text-tertiary">TCA − 10 min</span>
