@@ -30,7 +30,7 @@ export function OrbitSlider({
   };
 
   return (
-    <div className="grid min-h-[43px] grid-cols-[140px_minmax(0,1fr)_118px] items-center gap-3 border-t border-[var(--bd2)] px-3.5">
+    <div className="grid min-h-[43px] grid-cols-[140px_minmax(0,1fr)_142px] items-center gap-3 border-t border-[var(--bd2)] px-3.5">
       <span className="text-[10.5px] font-medium text-text-secondary">{label}</span>
       <input
         type="range"
@@ -57,7 +57,7 @@ export function OrbitSlider({
           onKeyDown={(event) => {
             if (event.key === "Enter") event.currentTarget.blur();
           }}
-          className="numeric w-[58px] border border-[var(--bd)] bg-field px-1.5 py-1 text-right text-[11px] font-medium text-text-primary outline-none transition-colors focus:border-[var(--acc-border)] [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          className="numeric h-6 w-[86px] border border-[var(--bd)] bg-field px-2 py-0 text-right text-[10.5px] font-medium text-text-primary outline-none transition-colors focus:border-[var(--acc-border)] [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
         />
         <span className="text-[10px] text-text-tertiary">{unit}</span>
       </div>
