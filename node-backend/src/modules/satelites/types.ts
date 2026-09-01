@@ -778,7 +778,7 @@ export interface ConjunctionEventListQuery {
   before?: string;
   upcoming?: boolean;
   horizon_hours: number;
-  recent_hours?: number;
+  tca_window_hours?: number;
   limit: number;
 }
 

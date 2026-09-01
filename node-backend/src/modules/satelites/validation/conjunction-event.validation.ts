@@ -7,7 +7,7 @@ export const conjunctionEventListQuerySchema = z.object({
   before: z.string().datetime({ offset: true }).optional(),
   upcoming: z.enum(["true", "false"]).transform((value) => value === "true").optional(),
   horizon_hours: z.coerce.number().int().min(1).max(168).default(168),
-  recent_hours: z.coerce.number().int().min(1).max(168).optional(),
+  tca_window_hours: z.coerce.number().int().min(1).max(168).optional(),
   limit: z.coerce.number().int().min(1).max(100).default(50),
 }).strict().refine(
   (query) => !query.from || !query.to || Date.parse(query.from) <= Date.parse(query.to),

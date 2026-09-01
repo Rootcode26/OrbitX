@@ -56,13 +56,19 @@ const overviewSummaryQuery = `
     (
       SELECT COUNT(*)::text
       FROM conjunction_events
-      WHERE computed_at >= CURRENT_TIMESTAMP - INTERVAL '1 day'
+      WHERE COALESCE(tca, NULLIF(raw_result->>'closest_approach_time_utc', '')::timestamptz)
+          >= CURRENT_TIMESTAMP - INTERVAL '1 day'
+        AND COALESCE(tca, NULLIF(raw_result->>'closest_approach_time_utc', '')::timestamptz)
+          < CURRENT_TIMESTAMP + INTERVAL '1 day'
         AND id IN (${latestConjunctionEventIdsSql})
     ) AS upcoming_conjunctions,
     (
       SELECT COUNT(*)::text
       FROM conjunction_events
-      WHERE computed_at >= CURRENT_TIMESTAMP - INTERVAL '1 day'
+      WHERE COALESCE(tca, NULLIF(raw_result->>'closest_approach_time_utc', '')::timestamptz)
+          >= CURRENT_TIMESTAMP - INTERVAL '1 day'
+        AND COALESCE(tca, NULLIF(raw_result->>'closest_approach_time_utc', '')::timestamptz)
+          < CURRENT_TIMESTAMP + INTERVAL '1 day'
         AND (risk_level IN ('CRITICAL', 'HIGH') OR risk_score >= 60)
         AND id IN (${latestConjunctionEventIdsSql})
     ) AS high_risk_conjunctions,

@@ -408,11 +408,11 @@ export const findConjunctionEvents = async (query: ConjunctionEventListQuery): P
   if (query.from) addClause((parameter) => `event.computed_at >= ${parameter}::timestamptz`, query.from);
   if (query.to) addClause((parameter) => `event.computed_at <= ${parameter}::timestamptz`, query.to);
   if (query.before) addClause((parameter) => `event.computed_at < ${parameter}::timestamptz`, query.before);
-  if (query.recent_hours) {
-    addClause(
-      (parameter) => `event.computed_at >= CURRENT_TIMESTAMP - (${parameter}::text || ' hours')::interval`,
-      query.recent_hours,
-    );
+  if (query.tca_window_hours) {
+    values.push(query.tca_window_hours);
+    const windowParameter = `$${values.length}`;
+    clauses.push(`${effectiveTcaSql} >= CURRENT_TIMESTAMP - (${windowParameter}::text || ' hours')::interval`);
+    clauses.push(`${effectiveTcaSql} < CURRENT_TIMESTAMP + (${windowParameter}::text || ' hours')::interval`);
   }
   if (query.upcoming) {
     values.push(query.horizon_hours);
