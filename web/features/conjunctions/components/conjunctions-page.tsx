@@ -223,6 +223,11 @@ export function ConjunctionsPage() {
     setSelectedEventId(firstEvent?.id ?? null);
   }
 
+  function showAllEvents() {
+    updateFilter("ALL");
+    window.history.replaceState(null, "", "/conjunctions");
+  }
+
   return (
     <AppShell
       title="Conjunctions"
@@ -245,7 +250,7 @@ export function ConjunctionsPage() {
             description="The conjunction screening service could not be reached. Check that the backend is running."
           />
         </main>
-      ) : !enrichedEvent ? (
+      ) : events.length === 0 ? (
         <main className="p-4 min-[1240px]:p-5">
           <EmptyState
             title="No conjunction events"
@@ -256,7 +261,7 @@ export function ConjunctionsPage() {
         <main className="grid items-start gap-3.5 p-4 min-[1240px]:grid-cols-[340px_minmax(0,1fr)] min-[1240px]:p-5 min-[1500px]:grid-cols-[360px_minmax(0,1fr)]">
           <ScreenedEventList
             events={paginatedEvents}
-            selectedEventId={enrichedEvent.id}
+            selectedEventId={enrichedEvent?.id ?? ""}
             filter={riskFilter}
             counts={counts}
             currentPage={visiblePage}
@@ -269,12 +274,31 @@ export function ConjunctionsPage() {
             }}
           />
           <div className="min-w-0 space-y-3.5">
-            <EventSummary event={enrichedEvent} trackedIds={trackedIds} onToggleTrack={toggleTracked} />
-            <div className="grid items-start gap-3.5 min-[1000px]:grid-cols-[minmax(280px,0.75fr)_minmax(420px,1.25fr)]">
-              <EventAnalysis event={enrichedEvent} />
-              <SeparationProfile event={enrichedEvent} />
-            </div>
-            <EncounterGeometry key={enrichedEvent.id} event={enrichedEvent} />
+            {enrichedEvent ? (
+              <>
+                <EventSummary event={enrichedEvent} trackedIds={trackedIds} onToggleTrack={toggleTracked} />
+                <div className="grid items-start gap-3.5 min-[1000px]:grid-cols-[minmax(280px,0.75fr)_minmax(420px,1.25fr)]">
+                  <EventAnalysis event={enrichedEvent} />
+                  <SeparationProfile event={enrichedEvent} />
+                </div>
+                <EncounterGeometry key={enrichedEvent.id} event={enrichedEvent} />
+              </>
+            ) : (
+              <EmptyState
+                className="min-h-[260px]"
+                title={`No ${riskFilter.toLowerCase()} conjunction events`}
+                description="No screened events match this risk level. Choose another filter or return to all conjunctions."
+                action={(
+                  <button
+                    type="button"
+                    onClick={showAllEvents}
+                    className="h-8 border border-[var(--acc-border)] bg-[var(--acc-tint)] px-4 text-[10.5px] font-medium text-[var(--acc-text)] transition-colors hover:border-[var(--acc)] hover:text-[var(--acc-hover)]"
+                  >
+                    Show all events
+                  </button>
+                )}
+              />
+            )}
           </div>
         </main>
       )}
