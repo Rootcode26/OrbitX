@@ -14,8 +14,15 @@ const beginTransactionQuery = "BEGIN";
 const commitTransactionQuery = "COMMIT";
 const rollbackTransactionQuery = "ROLLBACK";
 
-const separationThresholdSql = (column = "minimum_separation_km"): string =>
-  `${column} IS NOT NULL AND ${column} <= ${CONJUNCTION_ALERT_MAX_SEPARATION_KM}`;
+// The event list is primarily a close-approach view, but an explicit critical
+// verdict must never disappear just because the service omitted its distance
+// field (or reported a value outside the display threshold). Keep the normal
+// distance gate for other risk levels and always retain critical events.
+const conjunctionEventEligibilitySql = (alias: string): string => `(
+  (${alias}.minimum_separation_km IS NOT NULL AND ${alias}.minimum_separation_km <= ${CONJUNCTION_ALERT_MAX_SEPARATION_KM})
+  OR ${alias}.risk_level = 'CRITICAL'
+  OR ${alias}.risk_score >= 80
+)`;
 
 const latestConjunctionEventIdsSql = `
   SELECT DISTINCT ON (
@@ -25,7 +32,7 @@ const latestConjunctionEventIdsSql = `
   FROM conjunction_events pair_event
   JOIN satellites pair_a ON pair_a.id = pair_event.object_a_id
   JOIN satellites pair_b ON pair_b.id = pair_event.object_b_id
-  WHERE ${separationThresholdSql("pair_event.minimum_separation_km")}
+  WHERE ${conjunctionEventEligibilitySql("pair_event")}
   ORDER BY
     LEAST(pair_a.norad_cat_id, pair_b.norad_cat_id),
     GREATEST(pair_a.norad_cat_id, pair_b.norad_cat_id),
@@ -35,6 +42,7 @@ const latestConjunctionEventIdsSql = `
 
 const effectiveTcaSql = "COALESCE(event.tca, NULLIF(event.raw_result->>'closest_approach_time_utc', '')::timestamptz)";
 const effectiveRiskLevelSql = `CASE
+  WHEN event.minimum_separation_km IS NOT NULL AND event.minimum_separation_km < 1 THEN 'CRITICAL'
   WHEN event.risk_score >= 80 THEN 'CRITICAL'
   WHEN event.risk_score >= 60 THEN 'HIGH'
   WHEN event.risk_score >= 40 THEN 'MEDIUM'
