@@ -136,6 +136,21 @@ function ConjunctionScreenSummary({ result }: { result: ConjunctionScreenResult 
       riskRank[a.risk.risk_level] - riskRank[b.risk.risk_level]
       || (a.risk.minimum_separation_km ?? Infinity) - (b.risk.minimum_separation_km ?? Infinity));
 
+  // No candidate completed — almost always the conjunction service being
+  // unreachable. Surface it instead of implying an all-clear result.
+  if (result.requested > 0 && result.completed === 0) {
+    return (
+      <div className="col-span-2 space-y-1">
+        <p className="text-[10px] text-critical">
+          Screening failed — the conjunction service returned no result for any of the {result.requested} candidates.
+        </p>
+        {result.errors[0] ? (
+          <p className="text-[9px] text-text-tertiary">{result.errors[0].message}</p>
+        ) : null}
+      </div>
+    );
+  }
+
   return (
     <div className="col-span-2 space-y-2">
       <p className="text-[10px] text-nominal">
