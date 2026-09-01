@@ -142,7 +142,11 @@ function toConjunctionEvent(record: ConjunctionEventRecord): ConjunctionEvent {
 }
 
 export function ConjunctionsPage() {
-  const eventsQuery = useConjunctionEvents({ limit: 50, upcoming: true });
+  // Show the latest screened close-approach events per pair, not only those with
+  // a future TCA — a screened event (e.g. a 0 km critical) must always surface.
+  // Explicitly include historical screened pairs as well as future TCAs. The
+  // event store is a record of completed calculations, not only a live queue.
+  const eventsQuery = useConjunctionEvents({ limit: 50, upcoming: false });
   const [riskFilter, setRiskFilter] = useState<ConjunctionRiskFilter>("ALL");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(() => {
@@ -231,7 +235,7 @@ export function ConjunctionsPage() {
   return (
     <AppShell
       title="Conjunctions"
-      subtitle="Close-approach screening · 7 d horizon · ≤ 500 km miss distance"
+      subtitle="Close-approach screening · latest screened pairs · ≤ 500 km miss distance"
       activePath="/conjunctions"
     >
       {eventsQuery.isPending || (selectedEventId !== null && eventDetail.isPending) ? (
