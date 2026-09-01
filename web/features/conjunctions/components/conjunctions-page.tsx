@@ -142,7 +142,7 @@ function toConjunctionEvent(record: ConjunctionEventRecord): ConjunctionEvent {
 }
 
 export function ConjunctionsPage() {
-  const eventsQuery = useConjunctionEvents({ limit: 50, upcoming: true, horizonHours: 24 });
+  const eventsQuery = useConjunctionEvents({ limit: 50, recentHours: 24 });
   const [riskFilter, setRiskFilter] = useState<ConjunctionRiskFilter>("ALL");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(() => {
@@ -231,7 +231,7 @@ export function ConjunctionsPage() {
   return (
     <AppShell
       title="Conjunctions"
-      subtitle="Close-approach screening · next 24 h · ≤ 500 km miss distance"
+      subtitle="Close-approach screening · calculated in the last 24 h · ≤ 500 km miss distance"
       activePath="/conjunctions"
     >
       {eventsQuery.isPending || (selectedEventId !== null && eventDetail.isPending) ? (

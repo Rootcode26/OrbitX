@@ -13,8 +13,7 @@ const alertWithinSeparationThresholdSql = `(
     WHERE ce.id = alerts.conjunction_event_id
       AND ce.minimum_separation_km IS NOT NULL
       AND ce.minimum_separation_km <= ${CONJUNCTION_ALERT_MAX_SEPARATION_KM}
-      AND COALESCE(ce.tca, NULLIF(ce.raw_result->>'closest_approach_time_utc', '')::timestamptz) >= CURRENT_TIMESTAMP
-      AND COALESCE(ce.tca, NULLIF(ce.raw_result->>'closest_approach_time_utc', '')::timestamptz) < CURRENT_TIMESTAMP + INTERVAL '7 days'
+      AND alerts.created_at >= CURRENT_TIMESTAMP - INTERVAL '7 days'
   )
 )`;
 

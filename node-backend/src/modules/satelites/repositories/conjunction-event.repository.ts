@@ -408,6 +408,12 @@ export const findConjunctionEvents = async (query: ConjunctionEventListQuery): P
   if (query.from) addClause((parameter) => `event.computed_at >= ${parameter}::timestamptz`, query.from);
   if (query.to) addClause((parameter) => `event.computed_at <= ${parameter}::timestamptz`, query.to);
   if (query.before) addClause((parameter) => `event.computed_at < ${parameter}::timestamptz`, query.before);
+  if (query.recent_hours) {
+    addClause(
+      (parameter) => `event.computed_at >= CURRENT_TIMESTAMP - (${parameter}::text || ' hours')::interval`,
+      query.recent_hours,
+    );
+  }
   if (query.upcoming) {
     values.push(query.horizon_hours);
     const horizonParameter = `$${values.length}`;
