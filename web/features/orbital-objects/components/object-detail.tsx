@@ -74,7 +74,7 @@ export function ObjectDetail({ object, wishlisted, onToggleWishlist }: { object:
           href={`/satellite-finder?norad=${object.noradCatId}`}
           className="flex h-9 items-center justify-center border border-[var(--bd)] text-[11.5px] text-text-secondary transition-colors duration-150 hover:border-[var(--acc-border)] hover:text-text-primary"
         >
-          Add to finder
+          Open conjunction check
         </Link>
         <button onClick={onToggleWishlist} className={`h-9 border text-[11.5px] font-medium transition-colors duration-150 ${wishlisted ? "border-[var(--nominal-border)] bg-[var(--nominal-fill)] text-nominal" : "border-[var(--bd)] text-text-secondary hover:border-[var(--acc-border)] hover:text-text-primary"}`}>
           {wishlisted ? "In wishlist" : "Add to wishlist"}

@@ -13,7 +13,7 @@ const EncounterScene3D = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex h-[340px] items-center justify-center text-[11px] text-text-tertiary">Loading 3D view…</div>
+      <div className="flex h-[380px] items-center justify-center text-[11px] text-text-tertiary">Loading 3D view…</div>
     ),
   },
 );
@@ -72,6 +72,7 @@ export function EncounterGeometry({ event }: { event: ConjunctionEvent }) {
             objectBName={event.objectB.name}
             objectAType={event.objectA.objectType}
             objectBType={event.objectB.objectType}
+            tcaIso={event.tcaIso}
           />
         ) : (
           <EncounterDiagram2D
@@ -85,7 +86,7 @@ export function EncounterGeometry({ event }: { event: ConjunctionEvent }) {
 
         <div className="flex items-center justify-between gap-3 border-t border-[var(--bd2)] px-4 py-1.5 text-[8.5px] text-text-tertiary">
           <span>{model.hasTrack ? "Paths use supplied propagated samples" : model.exact ? "TCA positions are supplied · path extension is linear" : "Geometry reconstructed from supplied event metrics"}</span>
-          <span className="numeric hidden whitespace-nowrap min-[900px]:inline">generic markers enlarged · orientation shows velocity · geometry uniformly scaled</span>
+          <span className="numeric hidden whitespace-nowrap min-[900px]:inline">generic markers enlarged · computed geometry uniformly scaled</span>
         </div>
 
         <div className="flex items-center gap-4 border-y border-[var(--bd)] px-4 py-2.5">

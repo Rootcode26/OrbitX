@@ -20,6 +20,13 @@ export interface Vec3 {
   z: number;
 }
 
+export interface EncounterEarthContext {
+  /** TEME origin (Earth center) projected into the encounter frame, in km. */
+  centerKm: Vec3;
+  /** Images of the TEME x/y/z unit axes in the encounter frame. */
+  temeAxes: { x: Vec3; y: Vec3; z: Vec3 };
+}
+
 export interface EncounterModel {
   hasGeometry: boolean;
   /** True when built from real TCA state vectors rather than reconstructed. */
@@ -36,6 +43,8 @@ export interface EncounterModel {
   velocityA: Vec3;
   velocityB: Vec3;
   reconstructedVelocities: boolean;
+  /** Available only when absolute TEME state vectors were supplied. */
+  earthContext: EncounterEarthContext | null;
   positionA: (minutes: number) => Vec3;
   positionB: (minutes: number) => Vec3;
   midpoint: (minutes: number) => Vec3;
@@ -157,6 +166,14 @@ function buildExactModel(
 
   const velocityA = projectDirection(velocityAtca);
   const velocityB = projectDirection(velocityBtca);
+  const earthContext: EncounterEarthContext = {
+    centerKm: project({ x: 0, y: 0, z: 0 }),
+    temeAxes: {
+      x: { x: basisV.x, y: basisM.x, z: basisN.x },
+      y: { x: basisV.y, y: basisM.y, z: basisN.y },
+      z: { x: basisV.z, y: basisM.z, z: basisN.z },
+    },
+  };
 
   const track = event.encounterTrack ?? [];
   const sortedTrack = [...track].sort((a, b) => a.offsetSeconds - b.offsetSeconds);
@@ -225,6 +242,7 @@ function buildExactModel(
     velocityA,
     velocityB,
     reconstructedVelocities: false,
+    earthContext,
     positionA,
     positionB,
     midpoint,
@@ -288,6 +306,7 @@ function buildReconstructedModel(
     velocityA,
     velocityB,
     reconstructedVelocities,
+    earthContext: null,
     positionA,
     positionB,
     midpoint,

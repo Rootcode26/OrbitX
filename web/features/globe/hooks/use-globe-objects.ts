@@ -21,6 +21,7 @@ function toGlobeObject(satellite: SavedMakerSatellite, preserveMakerScale: boole
     id: satellite.norad_cat_id,
     name: satellite.name,
     objectClass,
+    radarCrossSectionM2: null,
     orbitRadius: preserveMakerScale
       ? Math.min(1.8, 1.12 + altitudeKm / 5000)
       : orbitRadiusFromAltitudeKm(altitudeKm),

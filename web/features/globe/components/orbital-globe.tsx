@@ -12,6 +12,12 @@ import type { FeatureCollection, Geometry } from "geojson";
 import type { GeometryCollection, Topology } from "topojson-specification";
 import { Icon } from "@/components/ui/icon";
 import { useGlobeObjects } from "../hooks/use-globe-objects";
+import {
+  MARKER_BASE_SCALE,
+  SELECTED_MARKER_SCALE,
+  medianRadarCrossSection,
+  radarCrossSectionMarkerScale,
+} from "../marker-display-scale";
 import { expandOrbitRadius } from "../orbit-display-scale";
 import type {
   GlobeFilter,
@@ -351,6 +357,7 @@ export function OrbitalGlobe({
     () => visibleObjectIds ? Array.from(new Set([...visibleObjectIds, ...userObjectIds])) : undefined,
     [visibleObjectIds, userObjectIds],
   );
+  const medianRcsM2 = useMemo(() => medianRadarCrossSection(objects), [objects]);
   const defaultCameraZ = compact ? 5.35 : finder ? 5.9 : 6.15;
   const mountRef = useRef<HTMLDivElement>(null);
   const orbitGroupRef = useRef<THREE.Group | null>(null);
@@ -369,7 +376,7 @@ export function OrbitalGlobe({
     debris: true,
     rocketBodies: true,
     orbits: true,
-    labels: true,
+    labels: false,
   });
   const visibleObjectIdsRef = useRef<Set<number> | null>(effectiveVisibleObjectIds ? new Set(effectiveVisibleObjectIds) : null);
   const selectedObjectIdRef = useRef(selectedObjectId);
@@ -381,7 +388,7 @@ export function OrbitalGlobe({
     debris: true,
     rocketBodies: true,
     orbits: true,
-    labels: true,
+    labels: false,
   });
 
   useEffect(() => {
@@ -509,7 +516,7 @@ export function OrbitalGlobe({
     const pointCloud = new THREE.Points(
       pointGeometry,
       new THREE.PointsMaterial({
-        size: 0.075,
+        size: 0.075 * MARKER_BASE_SCALE,
         sizeAttenuation: true,
         vertexColors: true,
         transparent: true,
@@ -533,8 +540,13 @@ export function OrbitalGlobe({
       }
 
       const position = orbitPosition(object, object.phase);
+      const baseMarkerScale = radarCrossSectionMarkerScale(object.radarCrossSectionM2, medianRcsM2);
       const marker = new THREE.Mesh(
-        new THREE.SphereGeometry(object.objectClass === "active" ? 0.048 : 0.042, 12, 12),
+        new THREE.SphereGeometry(
+          (object.objectClass === "active" ? 0.048 : 0.042) * MARKER_BASE_SCALE,
+          12,
+          12,
+        ),
         new THREE.MeshBasicMaterial({
           color: objectColors[object.objectClass],
           transparent: true,
@@ -545,6 +557,9 @@ export function OrbitalGlobe({
       marker.position.copy(position);
       marker.userData.objectId = object.id;
       marker.userData.originalColor = objectColors[object.objectClass];
+      marker.userData.baseMarkerScale = baseMarkerScale;
+      marker.userData.targetScale = baseMarkerScale;
+      marker.scale.setScalar(baseMarkerScale);
       const markerPlane = new THREE.Group();
       markerPlane.userData.objectClass = object.objectClass;
       markerPlane.userData.objectId = object.id;
@@ -747,7 +762,7 @@ export function OrbitalGlobe({
       renderer.dispose();
       mount.removeChild(renderer.domElement);
     };
-  }, [defaultCameraZ, objects, userObjectIds]);
+  }, [defaultCameraZ, medianRcsM2, objects, userObjectIds]);
 
   useEffect(() => {
     const orbitGroup = orbitGroupRef.current;
@@ -759,7 +774,7 @@ export function OrbitalGlobe({
     const markerPlane = new THREE.Group();
     const labelPlane = new THREE.Group();
     const marker = new THREE.Mesh(
-      new THREE.SphereGeometry(0.054, 14, 14),
+      new THREE.SphereGeometry(0.054 * MARKER_BASE_SCALE, 14, 14),
       new THREE.MeshBasicMaterial({ color: objectColors.focused }),
     );
     const label = createLabel(featuredObject.name, labelColors.focused);
@@ -768,6 +783,8 @@ export function OrbitalGlobe({
     marker.position.copy(position);
     marker.userData.objectId = featuredObject.id;
     marker.userData.originalColor = objectColors.focused;
+    marker.userData.baseMarkerScale = 1;
+    marker.userData.targetScale = 1;
     markerPlane.userData.objectClass = "focused";
     orientOrbitalPlane(markerPlane, featuredObject);
     markerPlane.add(marker);
@@ -853,7 +870,10 @@ export function OrbitalGlobe({
       if (!(material instanceof THREE.MeshBasicMaterial)) return;
       const selected = object.userData.objectId === selectedObjectId;
       object.userData.targetColor = selected ? 0xffffff : object.userData.originalColor as number;
-      object.userData.targetScale = selected ? 1.45 : 1;
+      const baseMarkerScale = typeof object.userData.baseMarkerScale === "number"
+        ? object.userData.baseMarkerScale
+        : 1;
+      object.userData.targetScale = baseMarkerScale * (selected ? SELECTED_MARKER_SCALE : 1);
     });
     orbitGroupRef.current?.children.forEach((orbitPlane) => {
       const selected = orbitPlane.userData.objectId === selectedObjectId;
@@ -954,6 +974,9 @@ export function OrbitalGlobe({
           <span className="flex items-center gap-1.5"><i className="h-1.5 w-1.5 bg-[var(--object-inactive)]" />INACTIVE</span>
           <span className="flex items-center gap-1.5"><i className="h-1.5 w-1.5 bg-[var(--object-rocket)]" />ROCKET BODY</span>
           <span className="flex items-center gap-1.5"><i className="h-1.5 w-1.5 bg-[var(--object-debris)]" />DEBRIS</span>
+        </div>
+        <div className="mt-1.5 max-w-52 text-[7.5px] leading-tight text-text-tertiary">
+          Marker size uses SATCAT RCS when available · not physically to scale
         </div>
       </div> : null}
 

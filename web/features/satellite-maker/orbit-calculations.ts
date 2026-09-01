@@ -46,6 +46,7 @@ export function toFeaturedGlobeObject(config: SatelliteDraftConfig, orbit: Deriv
     id: -1,
     name: config.objectName || "UNTITLED OBJECT",
     objectClass: "focused",
+    radarCrossSectionM2: null,
     orbitRadius: 1.12 + config.altitudeKm / 5000,
     inclination: config.inclinationDegrees,
     raan: config.raanDegrees,

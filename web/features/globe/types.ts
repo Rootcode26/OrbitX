@@ -8,6 +8,7 @@ export interface GlobeObject {
   id: number;
   name: string;
   objectClass: GlobeObjectClass;
+  radarCrossSectionM2?: number | null;
   orbitRadius: number;
   inclination: number;
   raan: number;

@@ -72,6 +72,30 @@ const altitudeExpression = `
   )
 `;
 
+// "Complete" means every value displayed in the catalog table is backed by
+// catalog/orbit data. Optional lifecycle metadata such as decay date and data
+// status is intentionally excluded because null is meaningful for live objects.
+const catalogCompletenessExpression = `
+  CASE WHEN
+    satellite.object_type IS NOT NULL
+    AND satellite.owner IS NOT NULL
+    AND satellite.operational_status IS NOT NULL
+    AND ${altitudeExpression} IS NOT NULL
+    AND COALESCE(state.inclination_degrees, tle.inclination_degrees) IS NOT NULL
+    AND state.speed_km_s IS NOT NULL
+    AND state.calculated_at IS NOT NULL
+  THEN 0 ELSE 1 END
+`;
+
+const catalogTypePriorityExpression = `
+  CASE satellite.object_type
+    WHEN 'PAY' THEN 0
+    WHEN 'R/B' THEN 1
+    WHEN 'DEB' THEN 2
+    ELSE 3
+  END
+`;
+
 interface CatalogFilter {
   where: string;
   values: unknown[];
@@ -201,7 +225,11 @@ export const findSatelliteCatalogPage = async (query: SatelliteCatalogQuery): Pr
     FROM satellites satellite
     ${catalogJoins}
     ${filter.where}
-    ORDER BY ${sortExpression} ${direction} NULLS LAST, satellite.norad_cat_id ASC
+    ORDER BY
+      ${catalogCompletenessExpression} ASC,
+      ${catalogTypePriorityExpression} ASC,
+      ${sortExpression} ${direction} NULLS LAST,
+      satellite.norad_cat_id ASC
     LIMIT ${limitParameter}
     OFFSET ${offsetParameter}
   `;

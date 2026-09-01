@@ -6,7 +6,7 @@ export const navigationItems: NavigationItem[] = [
   { label: "History", href: "/history", icon: "history" },
   { label: "Conjunctions", href: "/conjunctions", icon: "conjunction", count: 16 },
   { label: "Live Tracking", href: "/live-tracking", icon: "globe" },
-  { label: "Satellite Finder", href: "/satellite-finder", icon: "search" },
+  { label: "Conjunction Checking", href: "/satellite-finder", icon: "search" },
   { label: "Satellite Maker", href: "/satellite-maker", icon: "satellite" },
   { label: "Alerts", href: "/alerts", icon: "bell", count: 3 },
   { label: "Analytics", href: "/analytics", icon: "analytics" },

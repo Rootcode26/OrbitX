@@ -30,6 +30,7 @@ export interface CurrentSatelliteStateApiRecord {
   object_type: string | null;
   owner: string | null;
   operational_status: string | null;
+  radar_cross_section: number | null;
   calculated_at: string;
   tle_epoch: string;
   reference_frame: string;

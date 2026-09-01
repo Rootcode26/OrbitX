@@ -10,6 +10,7 @@ const satelliteStateColumns = `
   satellite.object_type,
   satellite.owner,
   satellite.operational_status,
+  satellite.radar_cross_section,
   orbit.calculated_at,
   orbit.epoch AS tle_epoch,
   orbit.reference_frame,
@@ -58,12 +59,41 @@ const latestSatelliteStatesQuery = `
     FROM satelite_orbit_data orbit
     WHERE ${completeStatePredicate}
     ORDER BY orbit.satellite_id, orbit.calculated_at DESC
+  ),
+  ranked_states AS (
+    SELECT
+      latest_states.*,
+      satellite.object_type,
+      ROW_NUMBER() OVER (
+        PARTITION BY satellite.object_type
+        ORDER BY latest_states.calculated_at DESC, satellite.norad_cat_id ASC
+      ) AS type_rank
+    FROM latest_states
+    JOIN satellites satellite
+      ON satellite.id = latest_states.satellite_id
+  ),
+  prioritized_states AS (
+    SELECT
+      ranked_states.*,
+      CASE
+        WHEN object_type = 'PAY' AND type_rank <= FLOOR($1 * 0.70) THEN 0
+        WHEN object_type = 'DEB' AND type_rank <= FLOOR($1 * 0.25) THEN 0
+        WHEN object_type = 'R/B' AND type_rank <= ($1 - FLOOR($1 * 0.70) - FLOOR($1 * 0.25)) THEN 0
+        ELSE 1
+      END AS quota_priority,
+      CASE object_type
+        WHEN 'PAY' THEN 0
+        WHEN 'R/B' THEN 1
+        WHEN 'DEB' THEN 2
+        ELSE 3
+      END AS type_priority
+    FROM ranked_states
   )
   SELECT ${satelliteStateColumns}
-  FROM latest_states orbit
+  FROM prioritized_states orbit
   JOIN satellites satellite
     ON satellite.id = orbit.satellite_id
-  ORDER BY orbit.calculated_at DESC, satellite.norad_cat_id ASC
+  ORDER BY orbit.quota_priority ASC, orbit.type_priority ASC, orbit.calculated_at DESC, satellite.norad_cat_id ASC
   LIMIT $1
 `;
 

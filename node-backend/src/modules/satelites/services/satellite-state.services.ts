@@ -17,6 +17,7 @@ const toSatelliteCurrentState = (row: SatelliteStateDatabaseRow): SatelliteCurre
   object_type: row.object_type,
   owner: row.owner,
   operational_status: row.operational_status,
+  radar_cross_section: row.radar_cross_section,
   calculated_at: row.calculated_at.toISOString(),
   tle_epoch: row.tle_epoch.toISOString(),
   reference_frame: row.reference_frame,

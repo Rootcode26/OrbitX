@@ -67,7 +67,7 @@ export function LiveStatePanel({
           onClick={onToggleFinder}
           className="h-9 border border-[var(--bd)] text-[10.5px] font-medium text-text-secondary transition-colors hover:border-[var(--acc-border)] hover:text-text-primary"
         >
-          {inFinder ? "Remove from finder" : "Add to finder"}
+          {inFinder ? "Remove from conjunction check" : "Add to conjunction check"}
         </button>
         <Link
           href="/conjunctions"

@@ -7,6 +7,12 @@ import { feature } from "topojson-client";
 import worldData from "world-atlas/countries-110m.json";
 import type { FeatureCollection, Geometry } from "geojson";
 import type { GeometryCollection, Topology } from "topojson-specification";
+import {
+  MARKER_BASE_SCALE,
+  SELECTED_MARKER_SCALE,
+  medianRadarCrossSection,
+  radarCrossSectionMarkerScale,
+} from "../marker-display-scale";
 import type { GlobeFilterState, GlobeObject, GlobeSimulationSpeed } from "../types";
 
 interface FlatEarthViewProps {
@@ -172,6 +178,8 @@ export function FlatEarthView({
       context.globalAlpha = 1;
     }
 
+    const medianRcsM2 = medianRadarCrossSection(objects);
+
     function draw(time: number) {
       animationFrame = window.requestAnimationFrame(draw);
       if (!active) {
@@ -207,10 +215,12 @@ export function FlatEarthView({
         const projected = projection(coordinates);
         if (!projected) return;
         const selected = object.id === state.selectedObjectId;
+        const rcsScale = radarCrossSectionMarkerScale(object.radarCrossSectionM2, medianRcsM2);
+        const markerRadius = 5.2 * MARKER_BASE_SCALE * rcsScale * (selected ? SELECTED_MARKER_SCALE : 1);
         context.fillStyle = selected ? "#FFFFFF" : classColors[object.objectClass];
         context.globalAlpha = 0.95;
         context.beginPath();
-        context.arc(projected[0], projected[1], selected ? 6.8 : 5.2, 0, Math.PI * 2);
+        context.arc(projected[0], projected[1], markerRadius, 0, Math.PI * 2);
         context.fill();
         screenPositionsRef.current.set(object.id, projected);
       });

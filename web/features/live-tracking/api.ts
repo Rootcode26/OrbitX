@@ -49,6 +49,7 @@ export function toGlobeObject(state: CurrentSatelliteStatesResponse["data"]["sta
     id: state.norad_cat_id,
     name: state.name,
     objectClass,
+    radarCrossSectionM2: state.radar_cross_section,
     orbitRadius: orbitRadiusFromAltitudeKm(state.height_km),
     inclination: state.inclination_degrees,
     raan: state.raan_degrees,

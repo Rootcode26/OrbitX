@@ -50,7 +50,7 @@ export function SatelliteFinderPage() {
     : null;
 
   return (
-    <AppShell title="Satellite Finder" subtitle="Database proximity scan · current state · 1,000 km radius" activePath="/satellite-finder">
+    <AppShell title="Conjunction Checking" subtitle="Database proximity scan · current state · 1,000 km radius" activePath="/satellite-finder">
       <main className="space-y-3.5 p-4 min-[1240px]:p-5">
         <div className="grid items-start gap-3.5 min-[1240px]:grid-cols-[minmax(0,1fr)_360px]">
           <Panel

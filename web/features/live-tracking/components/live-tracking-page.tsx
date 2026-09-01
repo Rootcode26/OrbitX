@@ -6,7 +6,7 @@ import { Panel } from "@/components/ui/panel";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { OrbitalGlobe } from "@/features/globe/components/orbital-globe";
-import { selectBalancedGlobeObjects } from "@/features/globe/select-globe-objects";
+import { selectGlobeObjectsByQuota } from "@/features/globe/select-globe-objects";
 import { useSatelliteState } from "../hooks/use-satellite-state";
 import { useCurrentSatelliteStates } from "../hooks/use-current-satellite-states";
 import { LiveStatePanel } from "./live-state-panel";
@@ -20,8 +20,12 @@ export function LiveTrackingPage() {
   const [finderIds, setFinderIds] = useState<Set<number>>(new Set());
   const currentStates = useCurrentSatelliteStates(100);
   const objects = useMemo(
-    () => selectBalancedGlobeObjects((currentStates.data ?? []).map((satellite) => satellite.globeObject), 100, 100),
-    [currentStates.data],
+    () => selectGlobeObjectsByQuota(
+      (currentStates.data ?? []).map((satellite) => satellite.globeObject),
+      undefined,
+      selectedObjectId !== null ? [selectedObjectId] : undefined,
+    ),
+    [currentStates.data, selectedObjectId],
   );
   const effectiveObjectId = selectedObjectId ?? objects[0]?.id ?? null;
   const state = useSatelliteState(effectiveObjectId);

@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { Panel } from "@/components/ui/panel";
 import { OrbitalGlobe } from "@/features/globe/components/orbital-globe";
-import { selectBalancedGlobeObjects } from "@/features/globe/select-globe-objects";
+import { selectGlobeObjectsByQuota } from "@/features/globe/select-globe-objects";
 import { useOverview } from "../hooks/use-overview";
 import { useCurrentSatelliteStates } from "@/features/live-tracking/hooks/use-current-satellite-states";
 
@@ -11,7 +11,7 @@ export function OrbitalSituation() {
   const overview = useOverview();
   const states = useCurrentSatelliteStates(100);
   const objects = useMemo(
-    () => selectBalancedGlobeObjects((states.data ?? []).map((state) => state.globeObject), 100, 100),
+    () => selectGlobeObjectsByQuota((states.data ?? []).map((state) => state.globeObject)),
     [states.data],
   );
 
