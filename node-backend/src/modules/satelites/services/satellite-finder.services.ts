@@ -1,5 +1,5 @@
 import { mapWithConcurrency } from "../../../helpers/mapWithConcurrency.ts";
-import { CONJUNCTION_SCREENING_WINDOW_MINUTES } from "../../../constants/index.ts";
+import { CONJUNCTION_DEFAULT_SCREENING_MINUTES } from "../../../constants/index.ts";
 import {
   getConjunctionCandidateTles,
   getLatestSatelliteTlesByNoradIds,
@@ -52,8 +52,8 @@ export const compareSatelliteFinderObjects = async (request: SatelliteFinderComp
         tle_line2: satellite.tle_line2,
       },
       start_time: startTime,
-      duration_minutes: request.duration_minutes ?? CONJUNCTION_SCREENING_WINDOW_MINUTES,
-      step_seconds: request.step_seconds ?? 300,
+      duration_minutes: request.duration_minutes ?? CONJUNCTION_DEFAULT_SCREENING_MINUTES,
+      step_seconds: request.step_seconds ?? 60,
       include_seperation_profile: request.include_separation_profile ?? false,
     };
 

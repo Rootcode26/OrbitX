@@ -124,8 +124,8 @@ export function SatelliteFinderPage() {
               onClick={() => screening.mutate({
                 primary_norad_id: result.primary_satellite.norad_cat_id,
                 comparison_norad_ids: result.satellites.map((satellite) => satellite.norad_cat_id),
-                duration_minutes: 10_080,
-                step_seconds: 300,
+                duration_minutes: 1_440,
+                step_seconds: 60,
                 include_separation_profile: true,
               })}
               className="h-9 shrink-0 border border-[var(--acc-border)] bg-[var(--acc-tint)] px-4 text-[10.5px] font-medium text-[var(--acc-text)] transition-colors hover:bg-[rgba(143,175,196,.18)] disabled:cursor-not-allowed disabled:opacity-40"

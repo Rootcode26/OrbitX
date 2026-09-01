@@ -1,5 +1,6 @@
 import {
   CONJUNCTION_ALERT_MAX_SEPARATION_KM,
+  CONJUNCTION_DEFAULT_SCREENING_MINUTES,
   CONJUNCTION_SCREENING_WINDOW_MINUTES,
 } from "../../../constants/index.ts";
 import {
@@ -127,8 +128,8 @@ export const normalizeConjunctionResult = (request: ConjunctionCheckRequest, res
     object_a_norad_id: request.satellite_a_norad_id,
     object_b_norad_id: request.satellite_b_norad_id,
     screening_started_at: request.start_time ?? computedAt,
-    screening_duration_minutes: request.duration_minutes ?? CONJUNCTION_SCREENING_WINDOW_MINUTES,
-    screening_step_seconds: request.step_seconds ?? 300,
+    screening_duration_minutes: request.duration_minutes ?? CONJUNCTION_DEFAULT_SCREENING_MINUTES,
+    screening_step_seconds: request.step_seconds ?? 60,
     computed_at: computedAt,
     tca: validTimestamp(readString(result, [
       "tca",
